@@ -289,90 +289,101 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 func Login(w http.ResponseWriter, r *http.Request) {
 	var creds Credentials
 	var user_type string
-	// Receive user login information in JSON
-	// and decode into User
-	err := json.NewDecoder(r.Body).Decode(&creds)
-	if err != nil {
-		// If the structure of the body is wrong, return an HTTP error
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	//Get the expected password from the list
-	expectedPassword := ""
 
-	db, err := sql.Open("mysql", sqlConnectionString+database)
-	if err != nil {
-		panic(err.Error())
-	}
-	defer db.Close()
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 
-	users, err = getAllUserFromDB(db)
-	if err != nil {
-		panic(err.Error())
-	}
+	// Handle OPTIONS method
+	if r.Method == "POST" {
 
-	for _, user := range users {
-		if creds.EmailAddress == user.EmailAddress {
-			expectedPassword = user.Password
-			user_type = user.UserType
+		// Receive user login information in JSON
+		// and decode into User
+		err := json.NewDecoder(r.Body).Decode(&creds)
+		if err != nil {
+			// If the structure of the body is wrong, return an HTTP error
+			w.WriteHeader(http.StatusBadRequest)
+			return
 		}
-	}
-	if expectedPassword == "" {
-		w.WriteHeader(http.StatusUnauthorized) //401
-		fmt.Fprintf(w, "Password not found!")
-		return
-	}
+		//Get the expected password from the list
+		expectedPassword := ""
 
-	//Declare the expiration time of the token to 30min
-	expirationTime := time.Now().Add(30 * time.Minute)
-
-	//Create JWT claims, which includes the email and expiry time
-	claims := &Claims{
-		EmailAddress: creds.EmailAddress,
-		RegisteredClaims: jwt.RegisteredClaims{
-			// In JWT, the expiry time is expressed as unix milliseconds
-			ExpiresAt: jwt.NewNumericDate(expirationTime),
-		},
-	}
-
-	// Declare the token with the algorithm used for signing, and the claims
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	// Create the JWT string
-	tokenString, err := token.SignedString(jwtKey)
-	if err != nil {
-		// If there is an error in creating the JWT return an internal server error
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	// Finally, we set the client cookie for "token" as the JWT we just generated
-	// we also set an expiry time which is the same as the token itself
-	http.SetCookie(w, &http.Cookie{
-		Name:    "token",
-		Value:   tokenString,
-		Expires: expirationTime,
-	})
-	// If the user logs in with the correct credentials, this handler will then set a cookie on the client
-	// side with the JWT value. Once the cookie is set on a client, it is sent along with every request henceforth
-
-	//return the user credential
-	if user_type == "passenger" {
-		passenger, err := getPassenger(db, creds.EmailAddress)
+		db, err := sql.Open("mysql", sqlConnectionString+database)
 		if err != nil {
 			panic(err.Error())
 		}
-		json.NewEncoder(w).Encode(passenger)
+		defer db.Close()
 
-	} else if user_type == "rider" {
-		rider, err := getRider(db, creds.EmailAddress)
+		users, err = getAllUserFromDB(db)
 		if err != nil {
 			panic(err.Error())
 		}
-		json.NewEncoder(w).Encode(rider)
-	} else {
-		w.WriteHeader(http.StatusNotFound) //404
+
+		for _, user := range users {
+			if creds.EmailAddress == user.EmailAddress {
+				expectedPassword = user.Password
+				user_type = user.UserType
+			}
+		}
+		if expectedPassword == "" {
+			w.WriteHeader(http.StatusUnauthorized) //401
+			fmt.Fprintf(w, "Password not found!")
+			return
+		}
+
+		//Declare the expiration time of the token to 30min
+		expirationTime := time.Now().Add(30 * time.Minute)
+
+		//Create JWT claims, which includes the email and expiry time
+		claims := &Claims{
+			EmailAddress: creds.EmailAddress,
+			RegisteredClaims: jwt.RegisteredClaims{
+				// In JWT, the expiry time is expressed as unix milliseconds
+				ExpiresAt: jwt.NewNumericDate(expirationTime),
+			},
+		}
+
+		// Declare the token with the algorithm used for signing, and the claims
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		// Create the JWT string
+		tokenString, err := token.SignedString(jwtKey)
+		if err != nil {
+			// If there is an error in creating the JWT return an internal server error
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		// Finally, we set the client cookie for "token" as the JWT we just generated
+		// we also set an expiry time which is the same as the token itself
+		http.SetCookie(w, &http.Cookie{
+			Name:    "token",
+			Value:   tokenString,
+			Expires: expirationTime,
+		})
+		// If the user logs in with the correct credentials, this handler will then set a cookie on the client
+		// side with the JWT value. Once the cookie is set on a client, it is sent along with every request henceforth
+
+		//return the user credential
+		if user_type == "passenger" {
+			passenger, err := getPassenger(db, creds.EmailAddress)
+			if err != nil {
+				panic(err.Error())
+			}
+			json.NewEncoder(w).Encode(passenger)
+
+		} else if user_type == "rider" {
+			rider, err := getRider(db, creds.EmailAddress)
+			if err != nil {
+				panic(err.Error())
+			}
+			json.NewEncoder(w).Encode(rider)
+		} else {
+			w.WriteHeader(http.StatusNotFound) //404
+			return
+		}
+	} else if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
 		return
 	}
+
 }
 
 // CHECK COOKIE JWT SIGNATURE AND DO SOMETHING
