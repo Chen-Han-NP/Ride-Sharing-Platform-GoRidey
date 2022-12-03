@@ -1,7 +1,7 @@
 //import logo from './logo.svg';
 import './App.css';
 import { useState } from 'react';
-import LoginPage from './Login.js';
+import LoginPage from './components/Login.js';
 
 class User {
   constructor (emailAddress, password){
