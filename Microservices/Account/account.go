@@ -2,10 +2,8 @@ package main
 
 import (
 	//"encoding/json"
-	"database/sql"
-	"encoding/json"
+
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -47,142 +45,6 @@ type Rider struct {
 var sqlConnectionString = "root:password@tcp(127.0.0.1:3306)/"
 var database = "RideSharingPlatform"
 var jwtKey = []byte("my_secret_key")
-
-// RETURN 200 -> Registered
-// RETURN 409 -> Duplicated account (email)
-// RETURN 417 -> INSERT failed
-func signup(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	user_type := params["user_type"]
-	// get the body of our POST request
-	reqBody, _ := ioutil.ReadAll(r.Body)
-
-	// Connect to the db
-	db, err := sql.Open("mysql", sqlConnectionString+database)
-	if err != nil {
-		panic(err.Error())
-	}
-	defer db.Close()
-
-	// Convert passenger to Passenger
-	//caser := cases.Title(language.English)
-	//user_type_format := caser.String(user_type)
-	//user_type_low := strings.ToLower(user_type)
-	//user_type_format := cases.Title(language.English).String(user_type_low)
-
-	// Step 1: Check if rider or passenger
-	if user_type == "passenger" {
-		var passenger Passenger
-		json.Unmarshal(reqBody, &passenger)
-
-		// check if email exists in the User table
-		isExist := checkEmailIsExist(passenger.EmailAddress, db)
-		if isExist {
-			w.WriteHeader(http.StatusConflict) //409
-			fmt.Println("Duplicated account: " + passenger.EmailAddress)
-			return
-		}
-
-		// Insert into User table
-		userQueryStatement := fmt.Sprintf(`
-		INSERT INTO User(email_address, password)
-		VALUES ('%s', '%s')`, passenger.EmailAddress, passenger.Password)
-		result, err := db.Exec(userQueryStatement)
-		if err != nil {
-			panic(err.Error())
-		}
-		id, err := result.LastInsertId()
-		if err != nil {
-			panic(err.Error())
-		}
-
-		// Upon getting the ID, now insert into Passenger table
-		queryStatement := fmt.Sprintf(`
-		INSERT INTO Passenger
-		VALUES (%d, '%s', '%s', '%s')`,
-			id,
-			passenger.FirstName,
-			passenger.LastName,
-			passenger.MobileNumber)
-
-		result2, err := db.Exec(queryStatement)
-		if err != nil {
-			panic(err.Error())
-		}
-		rows_affected, err := result2.RowsAffected()
-		if err != nil {
-			panic(err.Error())
-		}
-		if rows_affected == 1 {
-			w.WriteHeader(http.StatusAccepted) //202
-			json.NewEncoder(w).Encode("Insert Successfully")
-			fmt.Println("insert successfully")
-			return
-		} else {
-			w.WriteHeader(http.StatusExpectationFailed) //417
-			fmt.Println("Error with inserting")
-			return
-		}
-
-	} else if user_type == "rider" {
-		var rider Rider
-		json.Unmarshal(reqBody, &rider)
-		// check if email exists
-		isExist := checkEmailIsExist(rider.EmailAddress, db)
-		if isExist {
-			w.WriteHeader(http.StatusConflict) //409
-			fmt.Println("Duplicated account: " + rider.EmailAddress)
-			return
-		}
-
-		// Insert into User table
-		userQueryStatement := fmt.Sprintf(`
-		INSERT INTO User(email_address, password)
-		VALUES ('%s', '%s')`, rider.EmailAddress, rider.Password)
-		result, err := db.Exec(userQueryStatement)
-		if err != nil {
-			panic(err.Error())
-		}
-		id, err := result.LastInsertId()
-		if err != nil {
-			panic(err.Error())
-		}
-
-		// Upon getting the ID, now insert into Passenger table
-		queryStatement := fmt.Sprintf(`
-		INSERT INTO Rider
-		VALUES (%d, '%s', '%s', '%s', '%s', '%s')`,
-			id,
-			rider.FirstName,
-			rider.LastName,
-			rider.MobileNumber,
-			rider.IcNumber,
-			rider.CarLicNumber)
-
-		result2, err := db.Exec(queryStatement)
-		if err != nil {
-			panic(err.Error())
-		}
-		rows_affected, err := result2.RowsAffected()
-		if err != nil {
-			panic(err.Error())
-		}
-		if rows_affected == 1 {
-			w.WriteHeader(http.StatusAccepted) //202
-			json.NewEncoder(w).Encode("Insert Successfully")
-			fmt.Println("insert successfully")
-			return
-		} else {
-			w.WriteHeader(http.StatusExpectationFailed) //417
-			fmt.Println("Error with inserting")
-			return
-		}
-	} else {
-		w.WriteHeader(http.StatusNotFound) // 404
-		return
-	}
-
-}
 
 func account(w http.ResponseWriter, r *http.Request) {
 
@@ -231,25 +93,6 @@ func account(w http.ResponseWriter, r *http.Request) {
 }
 
 // ----- Functional Tool-------//
-func checkEmailIsExist(new_email string, db *sql.DB) bool {
-
-	query := fmt.Sprintf(`SELECT email_address FROM User WHERE email_address = '%s'`, new_email)
-	results, err := db.Query(query)
-	if err != nil {
-		panic(err.Error())
-	}
-	var email string
-	for results.Next() {
-		err = results.Scan(&email)
-		if err != nil {
-			panic(err.Error())
-		}
-		if email == new_email {
-			return true
-		}
-	}
-	return false
-}
 
 func main() {
 	router := mux.NewRouter()
