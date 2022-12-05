@@ -1,66 +1,30 @@
 //import logo from './logo.svg';
 import './App.css';
 import { useState, useEffect } from 'react';
-import { Routes, Route, Link } from "react-router-dom";
+import { Routes, Route, Link, Router } from "react-router-dom";
 import Login from "./components/Login";
 import Register from "./components/Register";
 import Home from "./components/Home";
 import Profile from "./components/Profile";
-import BoardUser from "./components/BoardUser";
+import Passenger from "./components/Passenger";
+import Rider from "./components/Rider";
 
 import EventBus from "./common/EventBus";
 import AuthService from './services/auth.service';
 
-
-class User {
-  constructor (emailAddress, password){
-    this.emailAddress = emailAddress;
-    this.password = password;
-  }
-}
-
-class Passenger {
-  constructor(passengerId, firstName, lastName, emailAddress, password, mobileNumber) {
-    this.passengerId = passengerId;
-    this.firstName = firstName;
-    this.lastName = lastName;
-    this.emailAddress = emailAddress;
-    this.password = password;
-    this.mobileNumber = mobileNumber
-  }
-}
-
-const PassengerPage = (props) => {
-  var passenger = props.passenger;
-
-  return  (
-    <>
-    <h1>Welcome to Passenger Home page</h1>
-    <h2>--Detail--</h2>
-    <h3>First Name: {passenger.firstName}</h3>
-    <h3>Last Name: {passenger.lastName}</h3>
-    <h3>Email: {passenger.emailAddress}</h3>
-    <h3>Mobile Number: {passenger.mobileNumber}</h3>
-
-    </>
-  )
-}
 const App = () => {
-  const [showModeratorBoard, setShowModeratorBoard] = useState(false);
-  const [showAdminBoard, setShowAdminBoard] = useState(false);
   const [currentUser, setCurrentUser] = useState(undefined);
+  const [currentUserType, setCurrentUserType] = useState(null);
 
   useEffect(() => {
     const user = AuthService.getCurrentUser();
 
+
     if (user) {
       setCurrentUser(user);
-      /*
-      setShowModeratorBoard(user.roles.includes("ROLE_MODERATOR"));
-      setShowAdminBoard(user.roles.includes("ROLE_ADMIN"));
-
-      */
+      setCurrentUserType(user.user_type);
     }
+
 
     EventBus.on("logout", () => {
       logOut();
@@ -72,8 +36,6 @@ const App = () => {
 
   const logOut = () => {
     AuthService.logout();
-    setShowModeratorBoard(false);
-    setShowAdminBoard(false);
     setCurrentUser(undefined)
   };
 
@@ -89,32 +51,22 @@ const App = () => {
               Home
             </Link>
           </li>
-        {/* 
-        
-                  {showModeratorBoard && (
-            <li className="nav-item">
-              <Link to={"/mod"} className="nav-link">
-                Moderator Board
-              </Link>
-            </li>
-          )}
 
-          {showAdminBoard && (
+          {currentUserType === "passenger" && currentUserType !== null ? (
             <li className="nav-item">
-              <Link to={"/admin"} className="nav-link">
-                Admin Board
+              <Link to={"/passenger"} className="nav-link">
+                Passenger
               </Link>
             </li>
-          )}
-      
-        */}
-          {currentUser && (
+          ) : (
             <li className="nav-item">
-              <Link to={"/user"} className="nav-link">
-                User
-              </Link>
-            </li>
-          )}
+            <Link to={"/rider"} className="nav-link">
+              Rider
+            </Link>
+          </li>
+          )
+        }
+       
         </div>
 
         {currentUser ? (
@@ -125,7 +77,7 @@ const App = () => {
               </Link>
             </li>
             <li className="nav-item">
-              <a href="/login" className="nav-link" onClick={logOut}>
+              <a href="/logout" className="nav-link" onClick={logOut}>
                 LogOut
               </a>
             </li>
@@ -154,19 +106,11 @@ const App = () => {
           <Route exact path="/login" element={<Login />} />
           <Route exact path="/register" element={<Register />} />
           <Route exact path="/profile" element={<Profile />} />
-          <Route path="/user" element={<BoardUser />} />
+          <Route exact path="/passenger" element={<Passenger />} />
+          <Route exact path="/rider" element={<Rider />} />
 
-{
-  /*
-          <Route path="/mod" element={<BoardModerator />} />
-          <Route path="/admin" element={<BoardAdmin />} />
-
-  */
-}
         </Routes>
       </div>
-
-      {/* <AuthVerify logOut={logOut}/> */}
     </div>
   );
 };
