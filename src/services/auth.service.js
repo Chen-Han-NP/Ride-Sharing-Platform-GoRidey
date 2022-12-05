@@ -36,7 +36,8 @@ const login = (email_address, password) => {
         "password": password }, {headers})
             .then((response) => {
             if (response.data.email_address) {
-            localStorage.setItem("user", JSON.stringify(response.data));
+                delete response.data.password
+                localStorage.setItem("user", JSON.stringify(response.data));
             }
         return response.data;
       });
