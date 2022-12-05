@@ -1,75 +1,118 @@
 //import logo from './logo.svg';
 import './App.css';
-import { useState } from 'react';
-import LoginPage from './components/Login.js';
+import { useState, useEffect } from 'react';
+import { Routes, Route, Link, Router } from "react-router-dom";
+import Login from "./components/Login";
+import Register from "./components/Register";
+import Home from "./components/Home";
+import Profile from "./components/Profile";
+import Passenger from "./components/Passenger";
+import Rider from "./components/Rider";
 
-class User {
-  constructor (emailAddress, password){
-    this.emailAddress = emailAddress;
-    this.password = password;
-  }
-}
+import EventBus from "./common/EventBus";
+import AuthService from './services/auth.service';
 
-class Passenger {
-  constructor(passengerId, firstName, lastName, emailAddress, password, mobileNumber) {
-    this.passengerId = passengerId;
-    this.firstName = firstName;
-    this.lastName = lastName;
-    this.emailAddress = emailAddress;
-    this.password = password;
-    this.mobileNumber = mobileNumber
-  }
-}
-
-const PassengerPage = (props) => {
-  var passenger = props.passenger;
-
-  return  (
-    <>
-    <h1>Welcome to Passenger Home page</h1>
-    <h2>--Detail--</h2>
-    <h3>First Name: {passenger.firstName}</h3>
-    <h3>Last Name: {passenger.lastName}</h3>
-    <h3>Email: {passenger.emailAddress}</h3>
-    <h3>Mobile Number: {passenger.mobileNumber}</h3>
-
-    </>
-  )
-}
 const App = () => {
-  const isUserLogin = false;
+  const [currentUser, setCurrentUser] = useState(undefined);
+  const [currentUserType, setCurrentUserType] = useState(null);
+
+  useEffect(() => {
+    const user = AuthService.getCurrentUser();
 
 
-  var passenger = new Passenger("U123", "Chen", "Han", "chenhan@gmail.com", "12345678", "14114121");
+    if (user) {
+      setCurrentUser(user);
+      setCurrentUserType(user.user_type);
+    }
+
+
+    EventBus.on("logout", () => {
+      logOut();
+    });
+    return () => {
+      EventBus.remove("logout");
+    };
+  }, []);
+
+  const logOut = () => {
+    AuthService.logout();
+    setCurrentUser(undefined)
+  };
 
   return (
-    <div className='App'>
-      {isUserLogin === true ? (
-        <PassengerPage passenger={passenger}>
-        </PassengerPage>
-      ) : (
-        <>
-        <LoginPage></LoginPage>
-        </>
-      )}
+    <div>
+      <nav className="navbar navbar-expand navbar-dark bg-dark">
+        <Link to={"/"} className="navbar-brand">
+          GoRidey
+        </Link>
+        <div className="navbar-nav mr-auto">
+          <li className="nav-item">
+            <Link to={"/home"} className="nav-link">
+              Home
+            </Link>
+          </li>
+
+          {currentUserType === "passenger" && currentUserType !== null ? (
+            <li className="nav-item">
+              <Link to={"/passenger"} className="nav-link">
+                Passenger
+              </Link>
+            </li>
+          ) : (
+            <li className="nav-item">
+            <Link to={"/rider"} className="nav-link">
+              Rider
+            </Link>
+          </li>
+          )
+        }
+       
+        </div>
+
+        {currentUser ? (
+          <div className="navbar-nav ml-auto">
+            <li className="nav-item">
+              <Link to={"/profile"} className="nav-link">
+                {currentUser.username}
+              </Link>
+            </li>
+            <li className="nav-item">
+              <a href="/logout" className="nav-link" onClick={logOut}>
+                LogOut
+              </a>
+            </li>
+          </div>
+        ) : (
+          <div className="navbar-nav ml-auto">
+            <li className="nav-item">
+              <Link to={"/login"} className="nav-link">
+                Login
+              </Link>
+            </li>
+
+            <li className="nav-item">
+              <Link to={"/register"} className="nav-link">
+                Sign Up
+              </Link>
+            </li>
+          </div>
+        )}
+      </nav>
+
+      <div className="container mt-3">
+        <Routes>
+          <Route exact path={"/"} element={<Home />} />
+          <Route exact path={"/home"} element={<Home />} />
+          <Route exact path="/login" element={<Login />} />
+          <Route exact path="/register" element={<Register />} />
+          <Route exact path="/profile" element={<Profile />} />
+          <Route exact path="/passenger" element={<Passenger />} />
+          <Route exact path="/rider" element={<Rider />} />
+
+        </Routes>
+      </div>
     </div>
   );
-}
-
-
-
-const StateExample = () => {
-  // react state can only can changed using the function attached
-  // so cant use counter = 100 as it is not mutable
-  const [counter, setCounter] = useState(100);
-
-  return (
-    <div className='App'>
-      <button onClick={() => setCounter(prevCount => prevCount - 1)}>-</button>
-      <h1>{counter}</h1>
-      <button>+</button>
-    </div>
-  );
-}
+};
 
 export default App;

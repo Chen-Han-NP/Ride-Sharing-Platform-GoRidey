@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -26,6 +27,8 @@ type Credentials struct {
 // Create a struct that can be encoded into a JWT
 type Claims struct {
 	EmailAddress string `json:"email_address"`
+	UserType     string `json:"user_type"`
+	UserID       string `json:"user_id"`
 	jwt.RegisteredClaims
 }
 
@@ -68,6 +71,7 @@ var sqlConnectionString = "root:password@tcp(127.0.0.1:3306)/"
 var database = "RideSharingPlatform"
 
 // ======= DB Functions ==========
+
 func checkEmailIsExist(db *sql.DB, new_email string) bool {
 	query := fmt.Sprintf(`SELECT email_address FROM User WHERE email_address = '%s'`, new_email)
 	results, err := db.Query(query)
@@ -289,6 +293,7 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 func Login(w http.ResponseWriter, r *http.Request) {
 	var creds Credentials
 	var user_type string
+	var user_id string
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
@@ -321,6 +326,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			if creds.EmailAddress == user.EmailAddress {
 				expectedPassword = user.Password
 				user_type = user.UserType
+				user_id = strconv.Itoa(user.UserID)
 			}
 		}
 		if expectedPassword == "" {
@@ -335,6 +341,9 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		//Create JWT claims, which includes the email and expiry time
 		claims := &Claims{
 			EmailAddress: creds.EmailAddress,
+			UserType:     user_type,
+			UserID:       user_id,
+
 			RegisteredClaims: jwt.RegisteredClaims{
 				// In JWT, the expiry time is expressed as unix milliseconds
 				ExpiresAt: jwt.NewNumericDate(expirationTime),
@@ -357,6 +366,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			Name:    "token",
 			Value:   tokenString,
 			Expires: expirationTime,
+			Path:    "/",
 		})
 		// If the user logs in with the correct credentials, this handler will then set a cookie on the client
 		// side with the JWT value. Once the cookie is set on a client, it is sent along with every request henceforth
@@ -428,7 +438,7 @@ func Welcome(w http.ResponseWriter, r *http.Request) {
 
 	// Finally, return the welcome message to the user, along with their
 	// email given in the token
-	w.Write([]byte(fmt.Sprintf("Welcome %s!", claims.EmailAddress)))
+	w.Write([]byte(fmt.Sprintf("Welcome %s! /n Your user type is: %s, your user id is : %s", claims.EmailAddress, claims.UserType, claims.UserID)))
 
 }
 
