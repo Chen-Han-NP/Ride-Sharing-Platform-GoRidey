@@ -66,7 +66,7 @@ type Message struct {
 
 // ====== GLOBAL VARIABLES ========
 var users Users
-var jwtKey = []byte("my_secret_key")
+var jwtKey = []byte("lhdrDMjhveyEVcvYFCgh1dBR2t7GM0YJ")
 var sqlConnectionString = "root:password@tcp(127.0.0.1:3306)/"
 var database = "RideSharingPlatform"
 
@@ -384,6 +384,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				panic(err.Error())
 			}
+
 			json.NewEncoder(w).Encode(rider)
 		} else {
 			w.WriteHeader(http.StatusNotFound) //404
