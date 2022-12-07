@@ -19,6 +19,7 @@ import (
 
 // ==== STRUCTs ========
 
+// struct for incoming Login req
 type Credentials struct {
 	EmailAddress string `json:"email_address"`
 	Password     string `json:"password"`
@@ -32,6 +33,7 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
+// Struct cooresponds to the User class in db
 type User struct {
 	UserID       int    `json:"user_id"`
 	UserType     string `json:"user_type"`
@@ -41,6 +43,7 @@ type User struct {
 
 type Users []User
 
+// Struct corresponds to the class in db
 type Passenger struct {
 	EmailAddress string `json:"email_address"`
 	Password     string `json:"password"`
@@ -49,7 +52,21 @@ type Passenger struct {
 	MobileNumber string `json:"mobile_number"`
 }
 
+// Struct corresponds to the class in db
 type Rider struct {
+	EmailAddress string `json:"email_address"`
+	Password     string `json:"password"`
+	FirstName    string `json:"first_name"`
+	LastName     string `json:"last_name"`
+	MobileNumber string `json:"mobile_number"`
+	IcNumber     string `json:"ic_number"`
+	CarLicNumber string `json:"car_lic_number"`
+}
+
+// This struct is used as a response to the client
+type CommonUser struct {
+	UserID       string `json:"user_id"`
+	UserType     string `json:"user_type"`
 	EmailAddress string `json:"email_address"`
 	Password     string `json:"password"`
 	FirstName    string `json:"first_name"`
@@ -158,6 +175,14 @@ func getRider(db *sql.DB, email_address string) (Rider, error) {
 // RETURN 409 -> Duplicated account (email)
 // RETURN 417 -> INSERT failed
 func SignUp(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	params := mux.Vars(r)
 	user_type := params["user_type"]
 	// get the body of our POST request
@@ -170,14 +195,9 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
-	// Convert passenger to Passenger
-	//caser := cases.Title(language.English)
-	//user_type_format := caser.String(user_type)
-	//user_type_low := strings.ToLower(user_type)
-	//user_type_format := cases.Title(language.English).String(user_type_low)
-
 	// Step 1: Check if rider or passenger
 	if user_type == "passenger" {
+
 		var passenger Passenger
 		json.Unmarshal(reqBody, &passenger)
 
@@ -187,102 +207,120 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusConflict) //409
 			fmt.Println("Duplicated account: " + passenger.EmailAddress)
 			return
-		}
-
-		// Insert into User table
-		userQueryStatement := fmt.Sprintf(`
-		INSERT INTO User(user_type, email_address, password)
-		VALUES ('%s', '%s', '%s')`, user_type, passenger.EmailAddress, passenger.Password)
-		result, err := db.Exec(userQueryStatement)
-		if err != nil {
-			panic(err.Error())
-		}
-		id, err := result.LastInsertId()
-		if err != nil {
-			panic(err.Error())
-		}
-
-		// Upon getting the ID, now insert into Passenger table
-		queryStatement := fmt.Sprintf(`
-		INSERT INTO Passenger
-		VALUES (%d, '%s', '%s', '%s')`,
-			id,
-			passenger.FirstName,
-			passenger.LastName,
-			passenger.MobileNumber)
-
-		result2, err := db.Exec(queryStatement)
-		if err != nil {
-			panic(err.Error())
-		}
-		rows_affected, err := result2.RowsAffected()
-		if err != nil {
-			panic(err.Error())
-		}
-		if rows_affected == 1 {
-			w.WriteHeader(http.StatusAccepted) //202
-			json.NewEncoder(w).Encode("Insert Successfully")
-			fmt.Println("insert successfully")
+		} else if passenger.EmailAddress == "" || passenger.FirstName == "" || passenger.LastName == "" || passenger.MobileNumber == "" || passenger.Password == "" {
+			w.WriteHeader(http.StatusNotAcceptable) //406
+			fmt.Println("Found empty string")
 			return
 		} else {
-			w.WriteHeader(http.StatusExpectationFailed) //417
-			fmt.Println("Error with inserting")
-			return
+			// Insert into User table
+			userQueryStatement := fmt.Sprintf(`
+		INSERT INTO User(user_type, email_address, password)
+		VALUES ('%s', '%s', '%s')`, user_type, passenger.EmailAddress, passenger.Password)
+			result, err := db.Exec(userQueryStatement)
+			if err != nil {
+				panic(err.Error())
+				return
+			}
+			id, err := result.LastInsertId()
+			if err != nil {
+				panic(err.Error())
+				return
+			}
+
+			// Upon getting the ID, now insert into Passenger table
+			queryStatement := fmt.Sprintf(`
+		INSERT INTO Passenger
+		VALUES (%d, '%s', '%s', '%s')`,
+				id,
+				passenger.FirstName,
+				passenger.LastName,
+				passenger.MobileNumber)
+
+			result2, err := db.Exec(queryStatement)
+			if err != nil {
+				panic(err.Error())
+			}
+			rows_affected, err := result2.RowsAffected()
+			if err != nil {
+				panic(err.Error())
+			}
+			if rows_affected == 1 {
+				w.WriteHeader(http.StatusAccepted) //202
+				json.NewEncoder(w).Encode("Passenger Insert Successfully")
+				fmt.Println("Passenger insert successfully")
+				return
+			} else {
+				w.WriteHeader(http.StatusExpectationFailed) //417
+				fmt.Println("Error with inserting")
+				return
+			}
 		}
 
 	} else if user_type == "rider" {
 		var rider Rider
 		json.Unmarshal(reqBody, &rider)
+
+		// Check for empty passenger
+		if rider.EmailAddress == "" || rider.FirstName == "" || rider.LastName == "" || rider.MobileNumber == "" || rider.Password == "" || rider.IcNumber == "" || rider.CarLicNumber == "" {
+			w.WriteHeader(http.StatusNotAcceptable) //406
+			fmt.Println("Found empty string")
+			return
+		}
+
 		// check if email exists
 		isExist := checkEmailIsExist(db, rider.EmailAddress)
 		if isExist {
 			w.WriteHeader(http.StatusConflict) //409
 			fmt.Println("Duplicated account: " + rider.EmailAddress)
 			return
-		}
+		} else {
 
-		// Insert into User table
-		userQueryStatement := fmt.Sprintf(`
+			// Insert into User table
+			userQueryStatement := fmt.Sprintf(`
 		INSERT INTO User(user_type, email_address, password)
 		VALUES ('%s', '%s', '%s')`, user_type, rider.EmailAddress, rider.Password)
-		result, err := db.Exec(userQueryStatement)
-		if err != nil {
-			panic(err.Error())
-		}
-		id, err := result.LastInsertId()
-		if err != nil {
-			panic(err.Error())
-		}
+			result, err := db.Exec(userQueryStatement)
+			if err != nil {
+				panic(err.Error())
+				return
+			}
+			id, err := result.LastInsertId()
+			if err != nil {
+				panic(err.Error())
+				return
+			}
 
-		// Upon getting the ID, now insert into Passenger table
-		queryStatement := fmt.Sprintf(`
+			// Upon getting the ID, now insert into Passenger table
+			queryStatement := fmt.Sprintf(`
 		INSERT INTO Rider
 		VALUES (%d, '%s', '%s', '%s', '%s', '%s')`,
-			id,
-			rider.FirstName,
-			rider.LastName,
-			rider.MobileNumber,
-			rider.IcNumber,
-			rider.CarLicNumber)
+				id,
+				rider.FirstName,
+				rider.LastName,
+				rider.MobileNumber,
+				rider.IcNumber,
+				rider.CarLicNumber)
 
-		result2, err := db.Exec(queryStatement)
-		if err != nil {
-			panic(err.Error())
+			result2, err := db.Exec(queryStatement)
+			if err != nil {
+				panic(err.Error())
+			}
+			rows_affected, err := result2.RowsAffected()
+			if err != nil {
+				panic(err.Error())
+			}
+			if rows_affected == 1 {
+				w.WriteHeader(http.StatusAccepted) //202
+				json.NewEncoder(w).Encode("Rider Insert Successfully")
+				fmt.Println("Rider insert successfully")
+				return
+			} else {
+				w.WriteHeader(http.StatusExpectationFailed) //417
+				fmt.Println("Error with inserting")
+				return
+			}
 		}
-		rows_affected, err := result2.RowsAffected()
-		if err != nil {
-			panic(err.Error())
-		}
-		if rows_affected == 1 {
-			w.WriteHeader(http.StatusAccepted) //202
-			json.NewEncoder(w).Encode("Insert Successfully")
-			fmt.Println("insert successfully")
-			return
-		} else {
-			w.WriteHeader(http.StatusExpectationFailed) //417
-			fmt.Println("Error with inserting")
-			return
-		}
+
 	} else {
 		w.WriteHeader(http.StatusNotFound) // 404
 		return
@@ -335,8 +373,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		//Declare the expiration time of the token to 30min
-		expirationTime := time.Now().Add(30 * time.Minute)
+		//Declare the expiration time of the token to 1hr
+		expirationTime := time.Now().Add(60 * time.Minute)
 
 		//Create JWT claims, which includes the email and expiry time
 		claims := &Claims{
@@ -362,12 +400,17 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 		// Finally, we set the client cookie for "token" as the JWT we just generated
 		// we also set an expiry time which is the same as the token itself
-		http.SetCookie(w, &http.Cookie{
-			Name:    "token",
-			Value:   tokenString,
-			Expires: expirationTime,
-			Path:    "/",
-		})
+		cookie := http.Cookie{
+			Name:     "token",
+			Value:    tokenString,
+			Expires:  expirationTime,
+			HttpOnly: true,
+			Path:     "/",
+		}
+		http.SetCookie(w, &cookie)
+
+		http.Header.Add(http.Header{}, cookie.Name, cookie.Value)
+
 		// If the user logs in with the correct credentials, this handler will then set a cookie on the client
 		// side with the JWT value. Once the cookie is set on a client, it is sent along with every request henceforth
 
@@ -377,7 +420,19 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				panic(err.Error())
 			}
-			json.NewEncoder(w).Encode(passenger)
+			// sending back CommonUser object
+			cUser := CommonUser{
+				UserID:       user_id,
+				UserType:     user_type,
+				EmailAddress: passenger.EmailAddress,
+				Password:     passenger.Password,
+				FirstName:    passenger.FirstName,
+				LastName:     passenger.LastName,
+				MobileNumber: passenger.MobileNumber,
+				IcNumber:     "",
+				CarLicNumber: "",
+			}
+			json.NewEncoder(w).Encode(cUser)
 
 		} else if user_type == "rider" {
 			rider, err := getRider(db, creds.EmailAddress)
@@ -385,7 +440,19 @@ func Login(w http.ResponseWriter, r *http.Request) {
 				panic(err.Error())
 			}
 
-			json.NewEncoder(w).Encode(rider)
+			// sending back CommonUser object
+			cUser := CommonUser{
+				UserID:       user_id,
+				UserType:     user_type,
+				EmailAddress: rider.EmailAddress,
+				Password:     rider.Password,
+				FirstName:    rider.FirstName,
+				LastName:     rider.LastName,
+				MobileNumber: rider.MobileNumber,
+				IcNumber:     rider.IcNumber,
+				CarLicNumber: rider.CarLicNumber,
+			}
+			json.NewEncoder(w).Encode(cUser)
 		} else {
 			w.WriteHeader(http.StatusNotFound) //404
 			return

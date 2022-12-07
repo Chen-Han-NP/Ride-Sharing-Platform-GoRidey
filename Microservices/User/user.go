@@ -47,16 +47,23 @@ type Rider struct {
 	CarLicNumber string `json:"car_lic_number"`
 }
 
-type PassengerMap map[string]Passenger
-type RiderMap map[string]Rider
+// This struct is used as a response to the client
+type CommonUser struct {
+	UserID       string `json:"user_id"`
+	UserType     string `json:"user_type"`
+	EmailAddress string `json:"email_address"`
+	Password     string `json:"password"`
+	FirstName    string `json:"first_name"`
+	LastName     string `json:"last_name"`
+	MobileNumber string `json:"mobile_number"`
+	IcNumber     string `json:"ic_number"`
+	CarLicNumber string `json:"car_lic_number"`
+}
 
 // ====== GLOBAL VARIABLES ========
 var sqlConnectionString = "root:password@tcp(127.0.0.1:3306)/"
 var database = "RideSharingPlatform"
-var jwtKey = []byte("my_secret_key")
-
-var passengerMap PassengerMap
-var riderMap RiderMap
+var jwtKey = []byte("lhdrDMjhveyEVcvYFCgh1dBR2t7GM0YJ")
 
 // ====== FUNCTONS =========
 func verifyJWT(w http.ResponseWriter, r *http.Request) (Claims, error) {
@@ -101,8 +108,8 @@ func verifyJWT(w http.ResponseWriter, r *http.Request) (Claims, error) {
 }
 
 // ======= HANDLER FUNCTIONS ========
-// GET passenger info
-// UPDATE Passenger in the db
+// GET user info
+// UPDATE user in the db
 func GetUser(w http.ResponseWriter, r *http.Request) {
 	db, err := sql.Open("mysql", sqlConnectionString+database)
 	if err != nil {
@@ -150,8 +157,20 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			w.WriteHeader(http.StatusAccepted) //202
-			passengerMap[user_id] = passenger_found
-			json.NewEncoder(w).Encode(passengerMap)
+
+			// sending back CommonUser object
+			cUser := CommonUser{
+				UserID:       user_id,
+				UserType:     user_type,
+				EmailAddress: passenger_found.EmailAddress,
+				Password:     passenger_found.Password,
+				FirstName:    passenger_found.FirstName,
+				LastName:     passenger_found.LastName,
+				MobileNumber: passenger_found.MobileNumber,
+				IcNumber:     "",
+				CarLicNumber: "",
+			}
+			json.NewEncoder(w).Encode(cUser)
 			return
 
 		} else if user_type == "rider" {
@@ -176,8 +195,19 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			w.WriteHeader(http.StatusAccepted) //202
-			riderMap[user_id] = rider_found
-			json.NewEncoder(w).Encode(riderMap)
+			// sending back CommonUser object
+			cUser := CommonUser{
+				UserID:       user_id,
+				UserType:     user_type,
+				EmailAddress: rider_found.EmailAddress,
+				Password:     rider_found.Password,
+				FirstName:    rider_found.FirstName,
+				LastName:     rider_found.LastName,
+				MobileNumber: rider_found.MobileNumber,
+				IcNumber:     rider_found.IcNumber,
+				CarLicNumber: rider_found.CarLicNumber,
+			}
+			json.NewEncoder(w).Encode(cUser)
 			return
 		}
 
@@ -212,8 +242,19 @@ WHERE u.user_id = %s;`, passenger.Password, passenger.FirstName, passenger.LastN
 			}
 			if rows_affected == 1 {
 				w.WriteHeader(http.StatusAccepted) //202
-				passengerMap[user_id] = passenger
-				json.NewEncoder(w).Encode(passengerMap)
+				cUser := CommonUser{
+					UserID:       user_id,
+					UserType:     user_type,
+					EmailAddress: passenger.EmailAddress,
+					Password:     passenger.Password,
+					FirstName:    passenger.FirstName,
+					LastName:     passenger.LastName,
+					MobileNumber: passenger.MobileNumber,
+					IcNumber:     "",
+					CarLicNumber: "",
+				}
+				json.NewEncoder(w).Encode(cUser)
+
 				return
 			} else {
 				w.WriteHeader(http.StatusNotFound) // 404
@@ -249,8 +290,18 @@ WHERE u.user_id = %s;`, rider.Password, rider.FirstName, rider.LastName, rider.M
 			}
 			if rows_affected == 1 {
 				w.WriteHeader(http.StatusAccepted) //202
-				riderMap[user_id] = rider
-				json.NewEncoder(w).Encode(riderMap)
+				cUser := CommonUser{
+					UserID:       user_id,
+					UserType:     user_type,
+					EmailAddress: rider.EmailAddress,
+					Password:     rider.Password,
+					FirstName:    rider.FirstName,
+					LastName:     rider.LastName,
+					MobileNumber: rider.MobileNumber,
+					IcNumber:     rider.IcNumber,
+					CarLicNumber: rider.CarLicNumber,
+				}
+				json.NewEncoder(w).Encode(cUser)
 				return
 			} else {
 				w.WriteHeader(http.StatusNotFound) // 404
@@ -268,9 +319,6 @@ WHERE u.user_id = %s;`, rider.Password, rider.FirstName, rider.LastName, rider.M
 func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/api/user", GetUser).Methods("GET", "PUT", "OPTIONS")
-
-	passengerMap = PassengerMap{}
-	riderMap = RiderMap{}
 
 	fmt.Println("Listening at port 5051")
 	log.Fatal(http.ListenAndServe(":5051", router))
