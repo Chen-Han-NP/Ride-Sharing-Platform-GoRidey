@@ -3,6 +3,7 @@ import AuthService from "../services/auth.service";
 
 const Profile = () => {
   const currentUser = AuthService.getCurrentUser();
+  const userType = currentUser.user_type  
 
   return (
     <div className="container">
@@ -24,6 +25,18 @@ const Profile = () => {
       <p>
         <strong>Mobile Number:</strong> {currentUser.mobile_number}
       </p>
+      {
+        userType === "rider" && (
+          <div>
+          <p>
+          <strong>Ic Number:</strong> {currentUser.ic_number}
+        </p>
+        <p>
+          <strong>Car Lic Number:</strong> {currentUser.car_lic_number}
+        </p>
+        </div>
+        )
+      }
     </div>
   );
 };
