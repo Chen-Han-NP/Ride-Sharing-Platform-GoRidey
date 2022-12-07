@@ -102,12 +102,12 @@ const Register = (props) => {
 
   return (
     <div className="col-md-12">
+        <header className="homePage">
+        <h3>Welcome to GoRidey</h3>
+        <br></br>
+        <h4>Sign Up</h4>
+      </header>
       <div className="card card-container">
-        <img
-          src="//ssl.gstatic.com/accounts/ui/avatar_2x.png"
-          alt="profile-img"
-          className="profile-img-card"
-        />
 
         <Form onSubmit={handleRegister} ref={form}>
           {!successful && (

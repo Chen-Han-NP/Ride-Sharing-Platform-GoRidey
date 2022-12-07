@@ -8,14 +8,21 @@ const Profile = () => {
     <div className="container">
       <header className="jumbotron">
         <h3>
-          <strong>{currentUser.username}</strong> Profile
+          Your Profile
         </h3>
+        <br></br>
       </header>
       <p>
-        <strong>Id:</strong> {currentUser.id}
+        <strong>First Name:</strong> {currentUser.first_name}
       </p>
       <p>
-        <strong>Email:</strong> {currentUser.email}
+        <strong>Last Name:</strong> {currentUser.last_name}
+      </p>
+      <p>
+        <strong>Email:</strong> {currentUser.email_address}
+      </p>
+      <p>
+        <strong>Mobile Number:</strong> {currentUser.mobile_number}
       </p>
     </div>
   );

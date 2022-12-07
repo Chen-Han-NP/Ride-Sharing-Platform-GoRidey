@@ -1,7 +1,15 @@
 import axios from "axios";
+import Cookies from 'js-cookie';
+import jwtDecode from 'jwt-decode';
 
 const AUTH_URL = "http://localhost:5050/api/auth/"
+const secret_key = "lhdrDMjhveyEVcvYFCgh1dBR2t7GM0YJ"
  
+const apiAxios = axios.create({
+    baseURL: AUTH_URL + "login",
+    withCredentials: true,
+  });
+
 
 const register_passenger = (email_address, password, first_name, last_name, mobile_number) => {
     return axios.post(AUTH_URL + "signup/passenger", {
@@ -31,16 +39,36 @@ const login = (email_address, password) => {
         'Content-Type': 'text/plain',
         "Access-Control-Allow-Origin": "*"
     };
-    return axios.post(AUTH_URL + "login",{
+
+    return apiAxios.interceptors.request.use(
+        async (req) => {
+    
+          config.headers.Authorization = token;
+          console.log(token)
+          req.headers['Content-type'] = 'application/json';
+          return req;
+        },
+        (error) => {
+          return Promise.reject(error);
+        },
+      );
+    
+
+/*
+    return axios.post(AUTH_URL + "login", {
         "email_address": email_address,
         "password": password }, {headers})
             .then((response) => {
+                console.log(response.)
             if (response.data.email_address) {
+
+
                 delete response.data.password
                 localStorage.setItem("user", JSON.stringify(response.data));
             }
         return response.data;
       });
+      */
 };
   
 const logout = () => {

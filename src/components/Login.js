@@ -20,16 +20,16 @@ const Login = () => {
   const form = useRef();
   const checkBtn = useRef();
 
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
   const navigate = useNavigate();
 
-  const onChangeUsername = (e) => {
-    const username = e.target.value;
-    setUsername(username);
+  const onChangeEmail = (e) => {
+    const email = e.target.value;
+    setEmail(email);
   };
 
   const onChangePassword = (e) => {
@@ -46,9 +46,10 @@ const Login = () => {
     form.current.validateAll();
 
     if (checkBtn.current.context._errors.length === 0) {
-      AuthService.login(username, password).then(
+      AuthService.login(email, password).then(
         () => {
-          navigate("/profile");
+        
+          navigate("/");
           window.location.reload();
         },
         (error) => {
@@ -70,17 +71,22 @@ const Login = () => {
 
   return (
     <div className="col-md-12">
+      <header className="homePage">
+        <h3>Welcome to GoRidey</h3>
+        <br></br>
+        <h4>Log In</h4>
+      </header>
       <div className="card card-container">
    
         <Form onSubmit={handleLogin} ref={form}>
           <div className="form-group">
-            <label htmlFor="username">Username</label>
+            <label htmlFor="email">Email Address</label>
             <Input
               type="text"
               className="form-control"
-              name="username"
-              value={username}
-              onChange={onChangeUsername}
+              name="email"
+              value={email}
+              onChange={onChangeEmail}
               validations={[required]}
             />
           </div>
@@ -121,78 +127,3 @@ const Login = () => {
 };
 
 export default Login;
-
-
-
-/*
-import React, {useState, useEffect } from 'react'
-import Form from "react-validation/build/form";
-import Input from "react-validation/build/input";
-import CheckButton from "react-validation/build/button";
-
-import { isEmail } from "validator";
-
-const API_LOGIN = "http://localhost:5050/login"
-
-class User {
-    constructor (email_address, password){
-      this.email_address = email_address;
-      this.password = password;
-    }
-  }
-
-const LoginPage = () => {
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    
-    useEffect(() => {
-        
-    });
-
-    async function login(){
-        var user = new User(email, password);
-        var userStringify = JSON.stringify(user)
-        
-        let result = await fetch(API_LOGIN, {
-            method: "POST",
-            headers: {
-                "Content-type": "application/json",
-                "Accept": "application/json"
-            },
-            body: userStringify 
-        });
-        result = await result.json();
-        localStorage.setItem()
-
-            
-    };
-
-    return (
-        <>
-        <h1>Welcome to Ridey</h1>
-        <p>Your awesome journey starts here</p>
-        <br></br>
-        <h3>Login</h3>
-        <form>
-        <div className="form-group">
-            <label htmlFor="exampleInputEmail1">Email address</label>
-            <input type="email" className="form-control" onChange={(e) =>
-                 setEmail(e.target.value)} id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Enter email"/>
-            <small id="emailHelp" className="form-text text-muted">We'll never share your email with anyone else.</small>
-        </div>
-        <div className="form-group">
-            <label htmlFor="exampleInputPassword1">Password</label>
-            <input type="password" className="form-control" onChange={(e) => 
-                setPassword(e.target.value)} id="exampleInputPassword1" placeholder="Password"/>
-        </div>
-        <div className="form-check">
-            <input type="checkbox" className="form-check-input" id="exampleCheck1"/>
-            <label className="form-check-label" htmlFor="exampleCheck1">Check me out</label>
-        </div>
-        <button type="submit" onClick={login} className="btn btn-primary">Login</button>
-        </form>
-        </>
-    );
-}
-export default LoginPage;
-  */
