@@ -176,7 +176,7 @@ func getRider(db *sql.DB, email_address string) (Rider, error) {
 // RETURN 417 -> INSERT failed
 func SignUp(w http.ResponseWriter, r *http.Request) {
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	//w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusOK)
@@ -333,7 +333,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	var user_type string
 	var user_id string
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	//w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	// Handle OPTIONS method
 	if r.Method == "POST" {
@@ -400,16 +400,16 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 		// Finally, we set the client cookie for "token" as the JWT we just generated
 		// we also set an expiry time which is the same as the token itself
-		cookie := http.Cookie{
+		http.SetCookie(w, &http.Cookie{
 			Name:     "token",
 			Value:    tokenString,
 			Expires:  expirationTime,
-			HttpOnly: true,
 			Path:     "/",
-		}
-		http.SetCookie(w, &cookie)
+			Secure:   false,
+			HttpOnly: true,
+		})
 
-		http.Header.Add(http.Header{}, cookie.Name, cookie.Value)
+		//http.Header.Add(http.Header{}, cookie.Name, cookie.Value)
 
 		// If the user logs in with the correct credentials, this handler will then set a cookie on the client
 		// side with the JWT value. Once the cookie is set on a client, it is sent along with every request henceforth
@@ -561,9 +561,12 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 
 	// Set the new token as the users `token` cookie
 	http.SetCookie(w, &http.Cookie{
-		Name:    "token",
-		Value:   tokenString,
-		Expires: expirationTime,
+		Name:     "token",
+		Value:    tokenString,
+		Expires:  expirationTime,
+		Path:     "/",
+		Secure:   false,
+		HttpOnly: true,
 	})
 }
 
@@ -571,8 +574,11 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 func Logout(w http.ResponseWriter, r *http.Request) {
 	// immediately clear the token cookie
 	http.SetCookie(w, &http.Cookie{
-		Name:    "token",
-		Expires: time.Now(),
+		Name:     "token",
+		Expires:  time.Now(),
+		Path:     "/",
+		Secure:   false,
+		HttpOnly: true,
 	})
 }
 
