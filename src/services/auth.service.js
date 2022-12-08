@@ -2,26 +2,27 @@ import axios from "axios";
 
 const AUTH_URL = "http://localhost:5050/api/auth/"
 
+axios.defaults.withCredentials = true
+let axiosConfig = {
+    headers: {
+        'Content-Type': 'text/plain'
+    },
+    withCredentials : true
+}
+
 
 const register_passenger = (email_address, password, first_name, last_name, mobile_number) => {
-    const headers = {
-        'Content-Type': 'text/plain',
-        "Access-Control-Allow-Origin": "*"
-    };
     return axios.post(AUTH_URL + "signup/passenger", {
       "email_address" : email_address,
       "password": password,
       "first_name" : first_name,
       "last_name" : last_name,
       "mobile_number": mobile_number
-    }, {headers})
+    }, axiosConfig)
 };
 
 const register_rider = (email_address, password, first_name, last_name, mobile_number, ic_number, car_lic_number) => {
-    const headers = {
-        'Content-Type': 'text/plain',
-        "Access-Control-Allow-Origin": "*"
-    };
+
     return axios.post(AUTH_URL + "signup/rider", {
         "email_address" : email_address,
         "password": password,
@@ -30,19 +31,16 @@ const register_rider = (email_address, password, first_name, last_name, mobile_n
         "mobile_number": mobile_number,
         "ic_number": ic_number,
         "car_lic_number": car_lic_number
-    }, {headers});
+    }, axiosConfig);
 };
 
 
 const login = (email_address, password) => {
-    const headers = {
-        'Content-Type': 'text/plain',
-        "Access-Control-Allow-Origin": "*"
-    };
 
     return axios.post(AUTH_URL + "login", {
         "email_address": email_address,
-        "password": password }, {headers})
+        "password": password }, 
+        axiosConfig)
             .then((response) => {
                 
             if (response.data.email_address) {

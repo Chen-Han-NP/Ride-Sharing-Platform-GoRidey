@@ -7,6 +7,7 @@ import RegisterPassenger from "./components/RegisterPassenger";
 import RegisterRider from "./components/RegisterRider";
 import Profile from "./components/Profile";
 import Passenger from "./components/Passenger";
+import PassengerRides from './components/PassengerRides';
 import Rider from "./components/Rider";
 
 import EventBus from "./common/EventBus";
@@ -98,6 +99,11 @@ const App = () => {
                 </Link>
               </li>
               <li className="nav-item">
+                <Link to={"/rides"} className="nav-link">
+                  Rides History
+                </Link>
+              </li>
+              <li className="nav-item">
                 <Link to={"/"} className="nav-link" onClick={logOut}>
                   Logout
                 </Link>
@@ -155,6 +161,7 @@ const App = () => {
               <Route exact path={"/"} element={<Passenger />} />
               <Route path="/passenger" element={<Passenger />} />
               <Route exact path="/profile" element={<Profile />} />
+              <Route exact path="/rides" element={<PassengerRides />} />
             </Routes>
           </div>
           ) : (
