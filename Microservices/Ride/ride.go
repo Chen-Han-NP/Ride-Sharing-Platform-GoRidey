@@ -77,6 +77,8 @@ var jwtKey = []byte("lhdrDMjhveyEVcvYFCgh1dBR2t7GM0YJ")
 
 // ====== FUNCTONS =========
 func verifyJWT(w http.ResponseWriter, r *http.Request) (Claims, error) {
+	fmt.Println(r.Cookie("token"))
+
 	c, err := r.Cookie("token")
 	if err != nil {
 		if err == http.ErrNoCookie {
@@ -119,6 +121,7 @@ func verifyJWT(w http.ResponseWriter, r *http.Request) (Claims, error) {
 		return *claims, err
 	}
 	// Token is valid
+
 	return *claims, nil
 }
 
@@ -232,7 +235,7 @@ func getAllRides(db *sql.DB, user_type string, user_id string, ride_status strin
 // ======= HANDLER FUNCTIONS ========
 // Allow Passenger to initate a new ride
 func NewRide(w http.ResponseWriter, r *http.Request) {
-	//w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
 
 	// Verify JWT Token
 	claims, err := verifyJWT(w, r)
@@ -359,7 +362,6 @@ func GetRide(w http.ResponseWriter, r *http.Request) {
 
 // Allow a user to get all the rides or can choose a filter
 func AllRides(w http.ResponseWriter, r *http.Request) {
-	//w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	// Check whether got query string first
 	querystringmap := r.URL.Query()
@@ -397,6 +399,7 @@ func AllRides(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			json.NewEncoder(w).Encode(rides)
+			fmt.Println(rides)
 		} else {
 			for k, v := range querystringmap {
 				if k == "status" {
@@ -676,6 +679,13 @@ func CancelRide(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	router := mux.NewRouter()
+	/*
+		c := cors.New(cors.Options{
+			AllowedOrigins:   []string{"http://localhost", "http://localhost:3000"},
+			AllowCredentials: true,
+			Debug:            true,
+		})
+	*/
 
 	router.HandleFunc("/api/ride/newride", NewRide).Methods("POST", "OPTIONS")
 	router.HandleFunc("/api/ride/getride/{ride_id}", GetRide).Methods("GET", "PUT", "OPTIONS")
@@ -685,6 +695,8 @@ func main() {
 	router.HandleFunc("/api/ride/cancel/{ride_id}", CancelRide).Methods("GET", "OPTIONS")
 
 	fmt.Println("Listening at port 5052")
-	log.Fatal(http.ListenAndServe(":5052", router))
+	//handler := c.Handler(router)
 
+	//log.Fatal(http.ListenAndServe(":5052", handler))
+	log.Fatal(http.ListenAndServe(":5052", router))
 }

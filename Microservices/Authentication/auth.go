@@ -333,7 +333,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	var user_type string
 	var user_id string
 
-	//w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	// Handle OPTIONS method
 	if r.Method == "POST" {
@@ -374,7 +374,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		}
 
 		//Declare the expiration time of the token to 1hr
-		expirationTime := time.Now().Add(60 * time.Minute)
+		expirationTime := time.Now().Add(12 * time.Hour)
 
 		//Create JWT claims, which includes the email and expiry time
 		claims := &Claims{

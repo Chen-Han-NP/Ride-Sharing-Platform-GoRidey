@@ -1,4 +1,7 @@
 import axios from "axios";
+import React from "react";
+import ReactDOM from "react-dom";
+
 
 const RIDE_URL = "http://localhost:5052/api/ride/"
 
@@ -6,9 +9,10 @@ axios.defaults.withCredentials = true
 
 let axiosConfig = {
     headers: {
-        'Content-Type': 'text/plain'
+        'Content-Type': 'text/plain',
+       // "Access-Control-Allow-Origin": "http://localhost:3000"
     },
-    withCredentials : true
+    withCredentials : true,
 }
 
 
@@ -35,15 +39,15 @@ const newride = (pickup_code, dropoff_code, ride_status) => {
 };
 
 const allrides = () => {
+    var FULL_URL = RIDE_URL + "allrides"
+    var URL = "http://localhost:5050/api/auth/welcome"
     
-
-    return axios.get(RIDE_URL + "allrides", axiosConfig)
+    return axios.get(FULL_URL, axiosConfig)
             .then((response) => {
                 localStorage.setItem("allrides", JSON.stringify(response.data));
         return response.data;
       });
       
-
 
 
 };
