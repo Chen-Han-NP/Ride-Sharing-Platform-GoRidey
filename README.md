@@ -12,17 +12,17 @@ GoRidey is able to do..
 - **Profile Management**
   
 
-## Development Tools
+## What are the Development Tools & Methods Used?
 GoRidey is developed using the following tools:
 - Developed using **Microservice architecture**, specifically **Authentication**, **User** and **Ride Managements**
 - **Back-end**: [Golang server](https://go.dev/) using [Mux Router](https://github.com/gorilla/mux)
 - **Front-end**: [React.js](https://reactjs.org/) & 
              [Bootstrap](https://getbootstrap.com/)
 - **CORS Middleware**: [Moesif Origin & CORS Changer](https://chrome.google.com/webstore/detail/moesif-origin-cors-change/digfbfaphojjndkpccljibejjbppifbc)
-- **Database**: [MySQL Workbench](https://www.mysql.com/)
+- **Database**: [MySQL](https://www.mysql.com/)
 
 
-## How-To-Use
+## How to Use?
 **Pre-requisites**: 
 - Installed [Node.js](https://nodejs.org/en/) package and environment, able to run `npm` commands.
 - Installed [Golang](https://go.dev/) package and environment, able to run `go` commands.
@@ -42,7 +42,7 @@ server should be running at [http://localhost:5052](http://localhost:5052).
 8. **All the servers should be up and running now! Feel free to explore the features :)**
 
 
-### Deployment
+## Deployment
 - Branch `gh-pages` is set for future deployment at [Github Pages](https://pages.github.com/), 
 using command `npm run deploy`, page is currently active at [https://chen-han-np.github.io/ride-sharing-platform/](https://chen-han-np.github.io/ride-sharing-platform/), but not up-to-date with developing codes.
 
