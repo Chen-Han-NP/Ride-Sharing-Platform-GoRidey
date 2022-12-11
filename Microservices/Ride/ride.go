@@ -82,12 +82,10 @@ func verifyJWT(w http.ResponseWriter, r *http.Request) (Claims, error) {
 		if err == http.ErrNoCookie {
 			// If the cookie is not set, return an unauthorized status
 			w.WriteHeader(http.StatusUnauthorized)
-			fmt.Println("1111111111111111111111111111111111")
 			return Claims{}, err
 		}
 		// For any other type of error, return a bad request status
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Println("2222222222222222222222222222222222222")
 		return Claims{}, err
 	}
 
@@ -105,20 +103,18 @@ func verifyJWT(w http.ResponseWriter, r *http.Request) (Claims, error) {
 	if err != nil {
 		if err == jwt.ErrSignatureInvalid {
 			w.WriteHeader(http.StatusUnauthorized)
-			fmt.Println("333333333333333333333333333333333333333333")
 			return *claims, err
 		}
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Println("4444444444444444444444444444444444")
 		return *claims, err
 	}
 
 	if !tkn.Valid {
 		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Println("55555555555555555555555555555555555555")
 		return *claims, err
 	}
 	// Token is valid
+
 	return *claims, nil
 }
 
@@ -191,6 +187,39 @@ func getRide(db *sql.DB, ride_id string) (Ride, error) {
 	return ride, nil
 }
 
+func getCurrentRide(db *sql.DB, user_id string, user_type string) (Ride, error) {
+	var ride Ride
+	var rideId int
+	var passengerId int
+	var riderId sql.NullInt64
+	var select_query string
+
+	if user_type == "passenger" {
+		select_query = fmt.Sprintf(`SELECT * FROM Ride WHERE passenger_id = %s && ride_status = "Riding";`, user_id)
+	} else if user_type == "rider" {
+		select_query = fmt.Sprintf(`SELECT * FROM Ride WHERE rider_id = %s && ride_status = "Riding";`, user_id)
+	}
+
+	results, err := db.Query(select_query)
+	if err != nil {
+		return ride, err
+	}
+
+	for results.Next() {
+		err = results.Scan(&rideId, &passengerId, &riderId, &ride.PickupCode, &ride.DropoffCode, &ride.RideStatus)
+		if err != nil {
+			return ride, err
+		}
+	}
+
+	ride.RideID = strconv.Itoa(int(rideId))
+	ride.PassengerID = strconv.Itoa(int(passengerId))
+	if riderId.Valid {
+		ride.RiderID = strconv.Itoa(int(riderId.Int64))
+	}
+	return ride, nil
+}
+
 func getAllRides(db *sql.DB, user_type string, user_id string, ride_status string) ([]Ride, error) {
 	var select_query string
 	var rides []Ride
@@ -232,7 +261,7 @@ func getAllRides(db *sql.DB, user_type string, user_id string, ride_status strin
 // ======= HANDLER FUNCTIONS ========
 // Allow Passenger to initate a new ride
 func NewRide(w http.ResponseWriter, r *http.Request) {
-	//w.Header().Set("Access-Control-Allow-Origin", "*")
+	//w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
 
 	// Verify JWT Token
 	claims, err := verifyJWT(w, r)
@@ -335,7 +364,7 @@ func GetRide(w http.ResponseWriter, r *http.Request) {
 	} else if r.Method == "GET" {
 		// check if ride id exists
 		rideIdExists := checkRideIdExists(db, ride_id)
-		if rideIdExists == false {
+		if !rideIdExists {
 			w.WriteHeader(http.StatusNotAcceptable) // 406
 			json.NewEncoder(w).Encode("Ride ID does not exist")
 			return
@@ -357,9 +386,10 @@ func GetRide(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Allow a user to get all the rides or can choose a filter
+// Allow a user to get all the rides or can choose a filter on ride status
+// All ride status => [Pending, Riding, Completed, Cancelled]
+// Note: Only pending request will return ALL ride records, other status type only return one belong to the user.
 func AllRides(w http.ResponseWriter, r *http.Request) {
-	//w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	// Check whether got query string first
 	querystringmap := r.URL.Query()
@@ -413,6 +443,54 @@ func AllRides(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
+	}
+}
+
+// Allow a rider to get his current on-going ride
+func CurrentRide(w http.ResponseWriter, r *http.Request) {
+	//w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	// Verify JWT Token
+	cookie, err := verifyJWT(w, r)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound) // 404
+		panic(err.Error())
+		return
+	}
+
+	user_id := cookie.UserID
+	user_type := cookie.UserType
+
+	// Define the db
+	// Connect to the db
+	db, err := sql.Open("mysql", sqlConnectionString+database)
+	if err != nil {
+		panic(err.Error())
+	}
+	defer db.Close()
+
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	} else if r.Method == "GET" {
+
+		ride, err := getCurrentRide(db, user_id, user_type)
+		if ride.RideID == "0" {
+			w.WriteHeader(http.StatusNotAcceptable)
+			return
+		}
+		if err != nil {
+			panic(err.Error())
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		json.NewEncoder(w).Encode(ride)
+		return
+
+	} else {
+		w.WriteHeader(http.StatusNotFound) //404
+		return
 	}
 }
 
@@ -676,15 +754,25 @@ func CancelRide(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	router := mux.NewRouter()
+	/*
+		c := cors.New(cors.Options{
+			AllowedOrigins:   []string{"http://localhost", "http://localhost:3000"},
+			AllowCredentials: true,
+			Debug:            true,
+		})
+	*/
 
 	router.HandleFunc("/api/ride/newride", NewRide).Methods("POST", "OPTIONS")
 	router.HandleFunc("/api/ride/getride/{ride_id}", GetRide).Methods("GET", "PUT", "OPTIONS")
+	router.HandleFunc("/api/ride/current", CurrentRide).Methods("GET", "OPTIONS")
 	router.HandleFunc("/api/ride/allrides", AllRides).Methods("GET", "OPTIONS")
 	router.HandleFunc("/api/ride/accept/{ride_id}", AcceptRide).Methods("GET", "OPTIONS")
 	router.HandleFunc("/api/ride/complete/{ride_id}", CompleteRide).Methods("GET", "OPTIONS")
 	router.HandleFunc("/api/ride/cancel/{ride_id}", CancelRide).Methods("GET", "OPTIONS")
 
 	fmt.Println("Listening at port 5052")
-	log.Fatal(http.ListenAndServe(":5052", router))
+	//handler := c.Handler(router)
 
+	//log.Fatal(http.ListenAndServe(":5052", handler))
+	log.Fatal(http.ListenAndServe(":5052", router))
 }

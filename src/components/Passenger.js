@@ -36,6 +36,7 @@ const Passenger = () => {
   const checkBtn = useRef();
 
   const currentUser = AuthService.getCurrentUser();
+
   const currentRide = RideServices.getCurrentRide();
 
   const [pickup_code, setPickupCode] = useState("");
@@ -153,14 +154,20 @@ const Passenger = () => {
               <strong>Ride ID:</strong> {currentRide.ride_id}
             </p>
             <p>
-              <strong>Pickup Code</strong> {currentRide.pickup_code}
+              <strong>Pickup Code: </strong> {currentRide.pickup_code}
             </p>
             <p>
-              <strong>Dropoff Code</strong> {currentRide.dropoff_code}
+              <strong>Dropoff Code: </strong> {currentRide.dropoff_code}
             </p>
             <p>
-              <strong>Ride Status</strong> {currentRide.ride_status}
+              <strong>Ride Status: </strong> {currentRide.ride_status}
             </p>
+            {currentRide.ride_status === "Pending" && (
+            <p>
+           Waiting for rider...
+            </p>
+            )
+            }
             </div>
         )
       }
