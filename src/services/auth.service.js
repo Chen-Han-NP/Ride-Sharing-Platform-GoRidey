@@ -3,19 +3,15 @@ import {useState} from 'react'
 
 const AUTH_URL = "http://localhost:5050/api/auth/"
 
-axios.defaults.withCredentials = false
+axios.defaults.withCredentials = true
 
 let axiosConfig = {
     headers: {
         'Content-Type': 'text/plain',
-        "Access-Control-Allow-Origin": "*"
+       // "Access-Control-Allow-Origin": "http://localhost:3000"
     },
-    withCredentials : false,
-    
+    withCredentials : true,
 }
-
-
-
 
 const register_passenger = (email_address, password, first_name, last_name, mobile_number) => {
     return axios.post(AUTH_URL + "signup/passenger", {
@@ -84,8 +80,11 @@ const login = (email_address, password) => {
 };
   
 const logout = () => {
-    localStorage.removeItem("user");
-    return axios.get(AUTH_URL + "logout", axiosConfig).then((response) => {
+    localStorage.clear();
+
+    return axios.get(AUTH_URL + "logout", axiosConfig)
+    .then((response) => {
+        return response.data;
     });
 };
   
