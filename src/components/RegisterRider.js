@@ -3,6 +3,7 @@ import Form from "react-validation/build/form";
 import Input from "react-validation/build/input";
 import CheckButton from "react-validation/build/button";
 import { isEmail } from "validator";
+import { useNavigate } from "react-router-dom";
 
 import AuthService from "../services/auth.service";
 
@@ -66,6 +67,7 @@ const RegisterRider = () => {
 
   const [successful, setSuccessful] = useState(false);
   const [message, setMessage] = useState("");
+  const navigate = useNavigate();
 
 
   const onChangeEmail = (e) => {
@@ -114,9 +116,12 @@ const RegisterRider = () => {
     // If passed validation, call auth service to send the API request
     if (checkBtn.current.context._errors.length === 0) {
       AuthService.register_rider(email, password, first_name, last_name, mobile_number, ic_number, car_lic_number).then(
-        (response) => {
+        () => {
+
           setMessage("Registered successfully!");
           setSuccessful(true);
+          
+
         },
         (error) => {
           var resMessage = ""

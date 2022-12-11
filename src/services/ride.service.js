@@ -16,9 +16,11 @@ let axiosConfig = {
 }
 
 // For Passenger
-const newride = (pickup_code, dropoff_code, ride_status) => {
+const newride = (user_name, user_phone, pickup_code, dropoff_code, ride_status) => {
 
     const postBody = {
+        "passenger_name" : user_name,
+        "passenger_phone": user_phone,
         "pickup_code": pickup_code,
         "dropoff_code": dropoff_code ,
         "ride_status": ride_status
@@ -29,15 +31,18 @@ const newride = (pickup_code, dropoff_code, ride_status) => {
                 localStorage.setItem("ride", JSON.stringify(response.data));
         return response.data;
       });
-
-      
 };
 
 const currentRide = () => {
     return axios.get(RIDE_URL + "current" , axiosConfig)
     .then((response) => {
-        localStorage.setItem("ride", JSON.stringify(response.data));
-        return response.data;
+        if (response.data.ride_id == 0) {
+            return
+        } else {
+            localStorage.setItem("ride", JSON.stringify(response.data));
+            return response.data;
+        }
+
     });
 }
 
@@ -48,10 +53,10 @@ const allrides = (status) => {
     if (status === ""){
         FULL_URL = RIDE_URL + "allrides"
         return axios.get(FULL_URL, axiosConfig)
-        .then((response) => {
-            localStorage.setItem("allrides", JSON.stringify(response.data));
-            return response.data;
-        });
+            .then((response) => {
+                localStorage.setItem("allrides", JSON.stringify(response.data));
+                return response.data;
+            });
         
     } else if (status === "Pending") {
         FULL_URL = RIDE_URL + "allrides?status=Pending" 
@@ -72,11 +77,21 @@ const allrides = (status) => {
 };
 
 const getCurrentRide = () => {
+    const ride = localStorage.getItem("ride")
+    if (ride == null) {
+        return null
+    } 
     return JSON.parse(localStorage.getItem("ride"));
 };
 
 const getAllRides = () => {
+    const rides = localStorage.getItem("allrides")
+    if (rides == null) {
+        return null
+    } 
     return JSON.parse(localStorage.getItem("allrides"))
+    
+
 }
 
 // For Rider
@@ -98,6 +113,7 @@ const getAllPendingRides = () => {
 
 
 const acceptRide = (ride_id) => {
+
     var FULL_URL = RIDE_URL + "accept/" + ride_id
     
     return axios.get(FULL_URL, axiosConfig)

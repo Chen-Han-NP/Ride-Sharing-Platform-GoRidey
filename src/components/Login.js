@@ -5,6 +5,7 @@ import Input from "react-validation/build/input";
 import CheckButton from "react-validation/build/button";
 
 import AuthService from "../services/auth.service";
+import RideServices from "../services/ride.service";
 
 const required = (value) => {
   if (!value) {
@@ -48,17 +49,33 @@ const Login = () => {
     if (checkBtn.current.context._errors.length === 0) {
       AuthService.login(email, password).then(
         () => {
-        
-          navigate("/");
-          window.location.reload();
+          // After login successfully, the user should have cookie with jwt token
+          // Can then call the currentRide function to get the current ride and save in the localstorage
+          // and call the allRides function to retrieve all the rides for the user
+          RideServices.currentRide().then(
+            ()=> {
+              
+              RideServices.allrides("").then(
+                () => {
+                  navigate("/");
+                  window.location.reload();
+                }
+              )
+            }
+          )
         },
         (error) => {
-          const resMessage =
+          var resMessage;
+          if (error.response.status === 401) {
+            resMessage = "Please try again!"
+          } else {
+            resMessage = 
             (error.response &&
               error.response.data &&
               error.response.data.message) ||
             error.message ||
             error.toString();
+          }
 
           setLoading(false);
           setMessage(resMessage);
