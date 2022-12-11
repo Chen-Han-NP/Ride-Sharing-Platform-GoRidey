@@ -36,7 +36,6 @@ const Passenger = () => {
   const checkBtn = useRef();
 
   const currentUser = AuthService.getCurrentUser();
-
   const currentRide = RideServices.getCurrentRide();
 
   const [pickup_code, setPickupCode] = useState("");
@@ -66,7 +65,10 @@ const Passenger = () => {
     form.current.validateAll();
 
     if (checkBtn.current.context._errors.length === 0) {
-      RideServices.newride(pickup_code, dropoff_code, "Pending").then(
+      var user_name = currentUser.first_name + " " + currentUser.last_name
+      var user_phone = currentUser.mobile_number
+
+      RideServices.newride(user_name, user_phone, pickup_code, dropoff_code, "Pending").then(
         () => {
           navigate("/");
           window.location.reload();
@@ -148,26 +150,37 @@ const Passenger = () => {
           </div>
         ) : (
 
-          <div className="showRide">
+          <div className="showRidePending">
             <h4>Current Ride Information</h4>
             <p>
               <strong>Ride ID:</strong> {currentRide.ride_id}
             </p>
+
+            {currentRide.ride_status === "Riding" && (
+              <div>
+                <p>
+                <strong>Rider Name: </strong> {currentRide.rider_name}
+                </p>
+                <p>
+                <strong>Rider Phone No.: </strong> {currentRide.rider_phone}
+                </p>
+              </div>
+            )}
+
             <p>
-              <strong>Pickup Code: </strong> {currentRide.pickup_code}
+              <strong>Pickup Postal Code: </strong> {currentRide.pickup_code}
             </p>
             <p>
-              <strong>Dropoff Code: </strong> {currentRide.dropoff_code}
+              <strong>Dropoff Postal Code: </strong> {currentRide.dropoff_code}
             </p>
             <p>
               <strong>Ride Status: </strong> {currentRide.ride_status}
             </p>
             {currentRide.ride_status === "Pending" && (
             <p>
-           Waiting for rider...
+              Waiting for rider...
             </p>
-            )
-            }
+            )}
             </div>
         )
       }

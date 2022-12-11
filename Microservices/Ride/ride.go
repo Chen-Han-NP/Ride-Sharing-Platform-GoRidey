@@ -62,12 +62,17 @@ type CommonUser struct {
 }
 
 type Ride struct {
-	RideID      string `json:"ride_id" `
-	PassengerID string `json:"passenger_id"`
-	RiderID     string `json:"rider_id"`
-	PickupCode  string `json:"pickup_code"`
-	DropoffCode string `json:"dropoff_code"`
-	RideStatus  string `json:"ride_status"`
+	RideID         string `json:"ride_id" `
+	PassengerID    string `json:"passenger_id"`
+	PassengerName  string `json:"passenger_name"`
+	PassengerPhone string `json:"passenger_phone"`
+	RiderID        string `json:"rider_id"`
+	RiderName      string `json:"rider_name"`
+	RiderPhone     string `json:"rider_phone"`
+	CarLicNumber   string `json:"car_lic_number"`
+	PickupCode     string `json:"pickup_code"`
+	DropoffCode    string `json:"dropoff_code"`
+	RideStatus     string `json:"ride_status"`
 }
 
 // ====== GLOBAL VARIABLES ========
@@ -119,6 +124,7 @@ func verifyJWT(w http.ResponseWriter, r *http.Request) (Claims, error) {
 }
 
 // ======= Functions ==========
+// Check if an on-going ride exist for passenger
 func checkExistingRide(db *sql.DB, passenger_id string) bool {
 	query := fmt.Sprintf(`SELECT COUNT(*) FROM Ride WHERE passenger_id = %s && (ride_status != 'Completed' && ride_status != 'Cancelled')`, passenger_id)
 	results, err := db.Query(query)
@@ -133,12 +139,10 @@ func checkExistingRide(db *sql.DB, passenger_id string) bool {
 			return true
 		}
 	}
-	if count > 0 {
-		return true
-	}
-	return false
+	return count > 0
 }
 
+// Check if the ride_id provided by the API exists
 func checkRideIdExists(db *sql.DB, ride_id string) bool {
 	query := fmt.Sprintf(`SELECT COUNT(*) FROM Ride WHERE ride_id = %s`, ride_id)
 	results, err := db.Query(query)
@@ -153,17 +157,18 @@ func checkRideIdExists(db *sql.DB, ride_id string) bool {
 			return false
 		}
 	}
-	if count == 0 {
-		return false
-	}
-	return true
+	return count > 0
 }
 
+// Get the ride info by providing ride_id
 func getRide(db *sql.DB, ride_id string) (Ride, error) {
 	var ride Ride
 	var rideId int
 	var passengerId int
 	var riderId sql.NullInt64
+	var riderName sql.NullString
+	var riderPhone sql.NullString
+	var carLicNumber sql.NullString
 
 	select_query := fmt.Sprintf(`SELECT * FROM Ride WHERE ride_id = %s;`, ride_id)
 
@@ -173,7 +178,7 @@ func getRide(db *sql.DB, ride_id string) (Ride, error) {
 	}
 
 	for results.Next() {
-		err = results.Scan(&rideId, &passengerId, &riderId, &ride.PickupCode, &ride.DropoffCode, &ride.RideStatus)
+		err = results.Scan(&rideId, &passengerId, &ride.PassengerName, &ride.PassengerPhone, &riderId, &riderName, &riderPhone, &carLicNumber, &ride.PickupCode, &ride.DropoffCode, &ride.RideStatus)
 		if err != nil {
 			return ride, err
 		}
@@ -183,41 +188,45 @@ func getRide(db *sql.DB, ride_id string) (Ride, error) {
 	ride.PassengerID = strconv.Itoa(int(passengerId))
 	if riderId.Valid {
 		ride.RiderID = strconv.Itoa(int(riderId.Int64))
+	}
+	if riderName.Valid {
+		ride.RiderName = riderName.String
+	}
+	if riderPhone.Valid {
+		ride.RiderPhone = riderPhone.String
+	}
+	if carLicNumber.Valid {
+		ride.CarLicNumber = carLicNumber.String
 	}
 	return ride, nil
 }
 
-func getCurrentRide(db *sql.DB, user_id string, user_type string) (Ride, error) {
-	var ride Ride
-	var rideId int
-	var passengerId int
-	var riderId sql.NullInt64
+// Get the current existing ride's ride_id and later can call the getRide func to save code
+func getCurrentRideId(db *sql.DB, user_id string, user_type string) (string, error) {
+	var rideIdInt int
+	var rideId string
+
 	var select_query string
 
 	if user_type == "passenger" {
-		select_query = fmt.Sprintf(`SELECT * FROM Ride WHERE passenger_id = %s && ride_status = "Riding";`, user_id)
+		select_query = fmt.Sprintf(`SELECT ride_id FROM Ride WHERE passenger_id = %s && ride_status = "Riding";`, user_id)
 	} else if user_type == "rider" {
-		select_query = fmt.Sprintf(`SELECT * FROM Ride WHERE rider_id = %s && ride_status = "Riding";`, user_id)
+		select_query = fmt.Sprintf(`SELECT ride_id FROM Ride WHERE rider_id = %s && ride_status = "Riding";`, user_id)
 	}
 
 	results, err := db.Query(select_query)
 	if err != nil {
-		return ride, err
+		return rideId, err
 	}
 
 	for results.Next() {
-		err = results.Scan(&rideId, &passengerId, &riderId, &ride.PickupCode, &ride.DropoffCode, &ride.RideStatus)
+		err = results.Scan(&rideIdInt)
 		if err != nil {
-			return ride, err
+			return rideId, err
 		}
 	}
-
-	ride.RideID = strconv.Itoa(int(rideId))
-	ride.PassengerID = strconv.Itoa(int(passengerId))
-	if riderId.Valid {
-		ride.RiderID = strconv.Itoa(int(riderId.Int64))
-	}
-	return ride, nil
+	rideId = strconv.Itoa(int(rideIdInt))
+	return rideId, nil
 }
 
 func getAllRides(db *sql.DB, user_type string, user_id string, ride_status string) ([]Ride, error) {
@@ -242,8 +251,11 @@ func getAllRides(db *sql.DB, user_type string, user_id string, ride_status strin
 		var rideId int
 		var passengerId int
 		var riderId sql.NullInt64
+		var riderName sql.NullString
+		var riderPhone sql.NullString
+		var carLicNumber sql.NullString
 
-		err = results.Scan(&rideId, &passengerId, &riderId, &ride.PickupCode, &ride.DropoffCode, &ride.RideStatus)
+		err = results.Scan(&rideId, &passengerId, &ride.PassengerName, &ride.PassengerPhone, &riderId, &riderName, &riderPhone, &carLicNumber, &ride.PickupCode, &ride.DropoffCode, &ride.RideStatus)
 		if err != nil {
 			return rides, err
 		}
@@ -253,6 +265,15 @@ func getAllRides(db *sql.DB, user_type string, user_id string, ride_status strin
 		if riderId.Valid {
 			ride.RiderID = strconv.Itoa(int(riderId.Int64))
 		}
+		if riderName.Valid {
+			ride.RiderName = riderName.String
+		}
+		if riderPhone.Valid {
+			ride.RiderPhone = riderPhone.String
+		}
+		if carLicNumber.Valid {
+			ride.CarLicNumber = carLicNumber.String
+		}
 		rides = append(rides, ride)
 	}
 	return rides, nil
@@ -260,6 +281,7 @@ func getAllRides(db *sql.DB, user_type string, user_id string, ride_status strin
 
 // ======= HANDLER FUNCTIONS ========
 // Allow Passenger to initate a new ride
+// And return the ride-info back to the user
 func NewRide(w http.ResponseWriter, r *http.Request) {
 	//w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
 
@@ -310,8 +332,8 @@ func NewRide(w http.ResponseWriter, r *http.Request) {
 
 		// Insert into Ride table
 		userQueryStatement := fmt.Sprintf(`
-		INSERT INTO Ride(passenger_id, pick_up_code, drop_off_code, ride_status)
-		VALUES ( %s, '%s', '%s', '%s');`, ride.PassengerID, ride.PickupCode, ride.DropoffCode, ride.RideStatus)
+		INSERT INTO Ride(passenger_id, passenger_name, passenger_phone, pick_up_code, drop_off_code, ride_status)
+		VALUES ( %s, '%s', '%s', '%s', '%s', '%s');`, ride.PassengerID, ride.PassengerName, ride.PassengerPhone, ride.PickupCode, ride.DropoffCode, ride.RideStatus)
 		result, err := db.Exec(userQueryStatement)
 		if err != nil {
 			panic(err.Error())
@@ -336,6 +358,7 @@ func NewRide(w http.ResponseWriter, r *http.Request) {
 }
 
 // Allow passenger to get a ride information by entering a ride id
+// and return the ride-info back to the user
 func GetRide(w http.ResponseWriter, r *http.Request) {
 	//w.Header().Set("Access-Control-Allow-Origin", "*")
 
@@ -473,12 +496,16 @@ func CurrentRide(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		return
 	} else if r.Method == "GET" {
-
-		ride, err := getCurrentRide(db, user_id, user_type)
-		if ride.RideID == "0" {
-			w.WriteHeader(http.StatusNotAcceptable)
+		// First get the ride id of the current ride -> On-going
+		rideId, err := getCurrentRideId(db, user_id, user_type)
+		if err != nil {
+			panic(err.Error())
+			w.WriteHeader(http.StatusNotFound)
 			return
 		}
+
+		// Now call the get ride function
+		ride, err := getRide(db, rideId)
 		if err != nil {
 			panic(err.Error())
 			w.WriteHeader(http.StatusNotFound)
@@ -556,12 +583,40 @@ func AcceptRide(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
+
+		// Get the rider info from the db
+		var rider Rider
+		var select_query string
+		select_query = fmt.Sprintf(`
+			SELECT u.email_address, u.password, r.first_name, r.last_name, r.mobile_number, r.ic_number, r.car_lic_number FROM User u
+			INNER JOIN Rider r
+			ON u.user_id = r.rider_id
+			WHERE email_address = '%s'`, claims.EmailAddress)
+
+		results, err := db.Query(select_query)
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound) //404
+			panic(err.Error())
+			return
+		}
+		for results.Next() {
+			err = results.Scan(&rider.EmailAddress, &rider.Password, &rider.FirstName, &rider.LastName, &rider.MobileNumber, &rider.IcNumber, &rider.CarLicNumber)
+			if err != nil {
+				w.WriteHeader(http.StatusNotFound) //404
+				panic(err.Error())
+				return
+			}
+		}
+
 		ride.RiderID = claims.UserID
 		ride.RideStatus = "Riding"
+		ride.RiderName = rider.FirstName + " " + rider.LastName
+		ride.RiderPhone = rider.MobileNumber
+		ride.CarLicNumber = rider.CarLicNumber
 
 		update_statement := fmt.Sprintf(`UPDATE Ride
-			SET rider_id = %s, ride_status = '%s'
-			WHERE ride_id = %s;`, ride.RiderID, ride.RideStatus, ride.RideID)
+				SET rider_id = %s, rider_name = '%s', rider_phone = '%s', car_lic_number = '%s', ride_status = '%s'
+				WHERE ride_id = %s;`, ride.RiderID, ride.RiderName, ride.RiderPhone, ride.CarLicNumber, ride.RideStatus, ride.RideID)
 
 		result, err := db.Exec(update_statement)
 		if err != nil {
@@ -578,9 +633,11 @@ func AcceptRide(w http.ResponseWriter, r *http.Request) {
 
 		if rows_affected == 1 {
 			w.WriteHeader(http.StatusAccepted) //202
-			json.NewEncoder(w).Encode("Ride is accepted!")
+			// If successful, return the new ride info to the user
+			json.NewEncoder(w).Encode(ride)
 			return
 		}
+
 	} else {
 		w.WriteHeader(http.StatusNotFound)
 		return

@@ -104,6 +104,7 @@ func verifyJWT(w http.ResponseWriter, r *http.Request) (Claims, error) {
 		return *claims, err
 	}
 	// Token is valid
+
 	return *claims, nil
 }
 
@@ -111,30 +112,34 @@ func verifyJWT(w http.ResponseWriter, r *http.Request) (Claims, error) {
 // GET user info
 // UPDATE user in the db
 func GetUser(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
+
+	claims, err := verifyJWT(w, r)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		panic(err.Error())
+		return
+	}
+
 	db, err := sql.Open("mysql", sqlConnectionString+database)
 	if err != nil {
 		panic(err.Error())
 	}
 	defer db.Close()
 
-	claims, err := verifyJWT(w, r)
-
-	if err != nil {
-		panic(err.Error())
-		return
-	}
-
 	email_address := claims.EmailAddress
 	user_type := claims.UserType
 	user_id := claims.UserID
-
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	var passenger_found Passenger
 	var rider_found Rider
 	var select_query string
 
-	if r.Method == "GET" {
+	if r.Method == "OPTIONS" {
+		fmt.Println("Lol")
+		w.WriteHeader(http.StatusOK) //200
+		return
+	} else if r.Method == "GET" {
 		if user_type == "passenger" {
 			select_query = fmt.Sprintf(`
 			SELECT u.email_address, u.password, p.first_name, p.last_name, p.mobile_number FROM User u
@@ -174,6 +179,7 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 			return
 
 		} else if user_type == "rider" {
+			// Retrieve the rider info out first
 			select_query = fmt.Sprintf(`
 			SELECT u.email_address, u.password, r.first_name, r.last_name, r.mobile_number, r.ic_number, r.car_lic_number FROM User u
 			INNER JOIN Rider r
@@ -210,8 +216,9 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 			json.NewEncoder(w).Encode(cUser)
 			return
 		}
-
-	} else if r.Method == "PUT" {
+		// NOTE: Changed to POST instead of PUT is because in the client-side, axios in react does not support sending credentials over
+		// when using PUT as req method, I have tried both PUT and PATCH but both does not work
+	} else if r.Method == "POST" {
 		var update_query string
 
 		if user_type == "passenger" {
@@ -227,8 +234,8 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 UPDATE Passenger p
 INNER JOIN User u
 ON p.passenger_id = u.user_id
-SET u.password = '%s', p.first_name = '%s', p.last_name = '%s', p.mobile_number = '%s'
-WHERE u.user_id = %s;`, passenger.Password, passenger.FirstName, passenger.LastName, passenger.MobileNumber, user_id)
+SET p.first_name = '%s', p.last_name = '%s', p.mobile_number = '%s'
+WHERE u.user_id = %s;`, passenger.FirstName, passenger.LastName, passenger.MobileNumber, user_id)
 
 			// Update to db
 			result, err := db.Exec(update_query)
@@ -256,8 +263,12 @@ WHERE u.user_id = %s;`, passenger.Password, passenger.FirstName, passenger.LastN
 				json.NewEncoder(w).Encode(cUser)
 
 				return
+			} else if rows_affected == 0 {
+				w.WriteHeader(http.StatusBadRequest) // 400
+				json.NewEncoder(w).Encode("Nothing had changed")
+				return
 			} else {
-				w.WriteHeader(http.StatusNotFound) // 404
+				w.WriteHeader(http.StatusNotFound)
 				return
 			}
 
@@ -274,8 +285,8 @@ WHERE u.user_id = %s;`, passenger.Password, passenger.FirstName, passenger.LastN
 UPDATE Rider r
 INNER JOIN User u
 ON r.rider_id = u.user_id
-SET u.password = '%s', r.first_name = '%s', r.last_name = '%s', r.mobile_number = '%s', r.car_lic_number = '%s'
-WHERE u.user_id = %s;`, rider.Password, rider.FirstName, rider.LastName, rider.MobileNumber, rider.CarLicNumber, user_id)
+SET r.first_name = '%s', r.last_name = '%s', r.mobile_number = '%s', r.car_lic_number = '%s'
+WHERE u.user_id = %s;`, rider.FirstName, rider.LastName, rider.MobileNumber, rider.CarLicNumber, user_id)
 
 			// Update to db
 			result, err := db.Exec(update_query)
@@ -303,14 +314,80 @@ WHERE u.user_id = %s;`, rider.Password, rider.FirstName, rider.LastName, rider.M
 				}
 				json.NewEncoder(w).Encode(cUser)
 				return
+			} else if rows_affected == 0 {
+				w.WriteHeader(http.StatusBadRequest) // 400
+				json.NewEncoder(w).Encode("Nothing had changed")
+				return
 			} else {
-				w.WriteHeader(http.StatusNotFound) // 404
+				w.WriteHeader(http.StatusNotFound)
 				return
 			}
 		}
 
-	} else if r.Method == "OPTIONS" {
-		w.WriteHeader(http.StatusOK) //200
+	} else {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+}
+
+// This handler update the user's password regardless of user type
+func UpdatePassword(w http.ResponseWriter, r *http.Request) {
+	db, err := sql.Open("mysql", sqlConnectionString+database)
+	if err != nil {
+		panic(err.Error())
+	}
+	defer db.Close()
+
+	claims, err := verifyJWT(w, r)
+
+	if err != nil {
+		panic(err.Error())
+		return
+	}
+
+	user_id := claims.UserID
+
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	} else if r.Method == "POST" {
+		// get the body of our POST request
+		reqBody, _ := ioutil.ReadAll(r.Body)
+		// unmarshal this into a new Diploma struct
+		var rider Rider
+
+		json.Unmarshal(reqBody, &rider)
+
+		update_query := fmt.Sprintf(`
+UPDATE User 
+SET password = '%s'
+WHERE user_id = %s;`, rider.Password, user_id)
+
+		// Update to db
+		result, err := db.Exec(update_query)
+
+		if err != nil {
+			panic(err.Error())
+		}
+
+		rows_affected, err := result.RowsAffected()
+		if err != nil {
+			panic(err.Error())
+		}
+		if rows_affected == 1 {
+			w.WriteHeader(http.StatusAccepted) //202
+			json.NewEncoder(w).Encode("Password Updated!")
+			return
+		} else if rows_affected == 0 {
+			w.WriteHeader(http.StatusBadRequest) // 400
+			json.NewEncoder(w).Encode("Nothing had changed")
+			return
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+	} else {
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
@@ -318,7 +395,8 @@ WHERE u.user_id = %s;`, rider.Password, rider.FirstName, rider.LastName, rider.M
 
 func main() {
 	router := mux.NewRouter()
-	router.HandleFunc("/api/user", GetUser).Methods("GET", "PUT", "OPTIONS")
+	router.HandleFunc("/api/user/getuser", GetUser).Methods("GET", "POST", "OPTIONS")
+	router.HandleFunc("/api/user/password", UpdatePassword).Methods("POST", "OPTIONS")
 
 	fmt.Println("Listening at port 5051")
 	log.Fatal(http.ListenAndServe(":5051", router))
