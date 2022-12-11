@@ -1,6 +1,52 @@
-# Getting Started with Create React App
+# GoRidey - A Ride Sharing Platform
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+GoRidey is an awesome platform for both Passengers and Riders to initiate, start and end a ride. The idea is very similar to Grab [https://www.grab.com/sg/](https://www.grab.com/sg/) or Gojek [https://www.gojek.com/sg/](https://www.gojek.com/sg/) in Singapore. 
+
+## Functionalities
+GoRidey consists of following functionalities:
+- Registration (Passenger or Rider)
+- Login Authentication with JWT Token
+- Ride Initialization by Passenger
+- Ride Cancellation
+- Ride Acceptation/Completion by Rider
+- Profile Management
+  
+
+## Development Tools
+GoRidey is developed using the following tools:
+- Developed using Microservice Architecturel, managing Authentication, User and Ride.
+- Back-end: [Golang server](https://go.dev/) using [Mux Router](https://github.com/gorilla/mux)
+- Front-end: [React.js](https://reactjs.org/) & 
+             [Bootstrap](https://getbootstrap.com/)
+- Middleware: [Moesif Origin & CORS Changer](https://chrome.google.com/webstore/detail/moesif-origin-cors-change/digfbfaphojjndkpccljibejjbppifbc)
+- Database: [MySQL Workbench](https://www.mysql.com/)
+
+
+## How-To-Use
+Pre-requisites: 
+- Installed Node.js package and environment, able to run `npm` commands.
+- Installed Golang package and environment, able to run `go` commands.
+- Installed MySQL Workbench
+
+### Let's dive into actions!
+1. Clone [https://github.com/Chen-Han-NP/ride-sharing-platform.git](https://github.com/Chen-Han-NP/ride-sharing-platform.git) into your new working repository.
+2. In your Terminal/Command Prompt, run: `npm run start` to start the development mode on the React project and the website is hosted on [http://localhost:3000](http://localhost:3000).
+3. Open your MySQL Workbench, make sure the Local User is set to: `root`, Password is set to: `password` and Port number is set to: `3306`, as the connection string in Golang server are set to `"root:password@tcp(127.0.0.1:3306)/"` in default.
+4. The MySQL script is located at: `RIDE-SHARING-PLATFORM/MySQL/RideSharingDBSetup.sql`, feel free to run the script to set up a datbase with two default users, Chen Han and Daryl, with one default completed Ride.
+5. Open a new Terminal/Command Prompt, run:`go run Microservices/Authentication/auth.go`, 
+server should be running at [http://localhost:5050](http://localhost:5050).
+6. Open a new Terminal/Command Prompt, run:`go run Microservices/User/user.go`,
+server should be running at [http://localhost:5051](http://localhost:5051).
+7. Open a new Terminal/Command Prompt, run:`go run Microservices/Ride/ride.go`,
+server should be running at [http://localhost:5052](http://localhost:5052).
+8. The servers should be all up and running!
+
+
+
+
+## Credits
+- This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+
 
 ## Available Scripts
 
