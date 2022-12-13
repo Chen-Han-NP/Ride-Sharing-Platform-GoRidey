@@ -135,19 +135,12 @@ const RegisterPassenger = () => {
 
 
   return (
-    <div className="col-md-12">
-        <header className="homePage">
-        <h3>Welcome to GoRidey</h3>
-        <br></br>
-        <h4>Register</h4>
-      </header>
-      <div className="card card-container">
-
         <Form onSubmit={handleRegister} ref={form}>
+          <h3>Register as Passenger</h3>
           {!successful && (
             
             <div>
-              <div className="form-group">
+              <div className="mb-3">
                 <label htmlFor="email">Email</label>
                 <Input
                   type="text"
@@ -159,7 +152,7 @@ const RegisterPassenger = () => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="mb-3">
                 <label htmlFor="first_name">First name</label>
                 <Input
                   type="text"
@@ -171,7 +164,7 @@ const RegisterPassenger = () => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="mb-3">
                 <label htmlFor="last_name">Last name</label>
                 <Input
                   type="text"
@@ -183,7 +176,7 @@ const RegisterPassenger = () => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="mb-3">
                 <label htmlFor="mobile_number">Mobile number</label>
                 <Input
                   type="text"
@@ -195,7 +188,7 @@ const RegisterPassenger = () => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="mb-3">
                 <label htmlFor="password">Password</label>
                 <Input
                   type="password"
@@ -207,14 +200,14 @@ const RegisterPassenger = () => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="d-grid">
                 <button className="btn btn-primary btn-block">Register Passenger</button>
               </div>
             </div>
           )}
 
           {message && (
-            <div className="form-group">
+            <div className="mb-3">
               <div
                 className={
                   successful ? "alert alert-success" : "alert alert-danger"
@@ -227,8 +220,6 @@ const RegisterPassenger = () => {
           )}
           <CheckButton style={{ display: "none" }} ref={checkBtn} />
         </Form>
-      </div>
-    </div>
   );
 };
 

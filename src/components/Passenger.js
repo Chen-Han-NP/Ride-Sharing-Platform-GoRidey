@@ -131,19 +131,20 @@ const Passenger = () => {
   }
   
   return (
-    <div className="container">
+    <div className="auth-inner">
       <header className="passengerPage">
-      <h3>Welcome Passenger! {currentUser.first_name} {currentUser.last_name}</h3>
+      <h3>Welcome!</h3> 
+      <h3> Passenger {currentUser.first_name}</h3>
       </header>
       <br></br>
 
       {
         !currentRide ? (
-          <div className="card card-container">
-            <h3>Book a New Ride now!</h3>
+          <div className="">
+            <h4>Book a ride now!</h4>
        
             <Form onSubmit={handleNewRide} ref={form}>
-              <div className="form-group">
+              <div className="mb-3">
                 <label htmlFor="pickup_code">Pickup Postal Code</label>
                 <Input
                   type="text"
@@ -155,7 +156,7 @@ const Passenger = () => {
                 />
               </div>
     
-              <div className="form-group">
+              <div className="mb-3">
                 <label htmlFor="dropoff_code">Dropoff Postal Code</label>
                 <Input
                   type="text"
@@ -167,7 +168,7 @@ const Passenger = () => {
                 />
               </div>
               
-              <div className="form-group">
+              <div className="d-grid">
               <button className="btn btn-primary btn-block" disabled={loading}>
                 {loading && (
                   <span className="spinner-border spinner-border-sm"></span>

@@ -149,18 +149,11 @@ const RegisterRider = () => {
 
 
   return (
-    <div className="col-md-12">
-        <header className="homePage">
-        <h3>Welcome to GoRidey</h3>
-        <br></br>
-        <h4>Register as a Rider</h4>
-      </header>
-      <div className="card card-container">
-
         <Form onSubmit={handleRegister} ref={form}>
+          <h3>Register as Rider</h3>
           {!successful && (
             <div>
-              <div className="form-group">
+              <div className="mb-3">
                 <label htmlFor="email">Email</label>
                 <Input
                   type="text"
@@ -172,7 +165,7 @@ const RegisterRider = () => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="mb-3">
                 <label htmlFor="first_name">First name</label>
                 <Input
                   type="text"
@@ -184,7 +177,7 @@ const RegisterRider = () => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="mb-3">
                 <label htmlFor="last_name">Last name</label>
                 <Input
                   type="text"
@@ -196,7 +189,7 @@ const RegisterRider = () => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="mb-3">
                 <label htmlFor="mobile_number">Mobile number</label>
                 <Input
                   type="text"
@@ -208,7 +201,7 @@ const RegisterRider = () => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="mb-3">
                 <label htmlFor="ic_number">NRIC</label>
                 <Input
                   type="text"
@@ -220,7 +213,7 @@ const RegisterRider = () => {
                 />
               </div>
               
-              <div className="form-group">
+              <div className="mb-3">
                 <label htmlFor="car_lic_number">Car License Number</label>
                 <Input
                   type="text"
@@ -232,7 +225,7 @@ const RegisterRider = () => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="mb-3">
                 <label htmlFor="password">Password</label>
                 <Input
                   type="password"
@@ -244,7 +237,7 @@ const RegisterRider = () => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="d-grid">
                 <button className="btn btn-primary btn-block">Register Rider</button>
               </div>
             </div>
@@ -264,8 +257,6 @@ const RegisterRider = () => {
           )}
           <CheckButton style={{ display: "none" }} ref={checkBtn} />
         </Form>
-      </div>
-    </div>
   );
 };
 

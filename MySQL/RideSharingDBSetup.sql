@@ -1,6 +1,5 @@
 CREATE DATABASE RideSharingPlatform;
 
-
 USE RideSharingPlatform;
 
 /*
@@ -66,6 +65,9 @@ CREATE TABLE `Ride`
  `car_lic_number` varchar(20) NULL ,
  `pick_up_code`  varchar(6) NOT NULL ,
  `drop_off_code` varchar(6) NOT NULL ,
+ `ride_dt`        DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
+ `pick_up_dt`     DATETIME NULL,
+ `drop_off_dt`    DATETIME NULL,
  `ride_status`   varchar(20) NOT NULL ,
 
 PRIMARY KEY (`ride_id`),
@@ -83,9 +85,11 @@ INSERT INTO User(user_type, email_address, password)
 VALUES ('rider', 'dyhy@gmail.com', '12345678');
 
 INSERT INTO Passenger
-VALUES (1, 'Chen','Han','99887755');
+VALUES (1, 'Chen','Han','98294455');
 INSERT INTO Rider
-VALUES (2, 'Daryl','Yee','99887766','S1232123', 'B353234');
+VALUES (2, 'Daryl','Yee','99887766','S1242345', 'B353234');
 
-INSERT INTO Ride(passenger_id, passenger_name, passenger_phone, rider_id, rider_name, rider_phone, car_lic_number, pick_up_code, drop_off_code, ride_status)
-VALUES (1, 'Chen Han', '99887755', 2, 'Daryl Yee', '99887766', 'B353234', '120324', '143234', "Completed" );
+INSERT INTO Ride(passenger_id, passenger_name, passenger_phone, rider_id, rider_name, rider_phone, car_lic_number, pick_up_code, drop_off_code, ride_dt, pick_up_dt, drop_off_dt, ride_status)
+VALUES (1, 'Chen Han', '98294455', 2, 'Daryl Yee', '9982332', 'B353234', '120324', '143234', '2022-12-07 12:23:12', '2022-12-07 12:30:23', '2022-12-07 13:01:12' , "Completed" );
+INSERT INTO Ride(passenger_id, passenger_name, passenger_phone, rider_id, rider_name, rider_phone, car_lic_number, pick_up_code, drop_off_code, ride_dt, pick_up_dt, drop_off_dt, ride_status)
+VALUES (1, 'Chen Han', '98294455', 2, 'Daryl Yee', '9982332', 'B353234', '123211', '432542', '2022-12-10 14:25:43', '2022-12-10 14:31:34', '2022-12-10 15:01:12' , "Completed" );
