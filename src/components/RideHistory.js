@@ -94,9 +94,9 @@ const RideHistory = () => {
       <p><strong>You do not have any rides</strong></p>
     )
   } 
+
   return (
-    <React.Fragment>
-    <div className="rideHistory">
+    <div className="ride-his">
     <header>
       <h3>Ride History</h3>
       </header>
@@ -118,7 +118,7 @@ const RideHistory = () => {
           </div>
       </div>
   </div>
-    </React.Fragment>
+
   )
 
   

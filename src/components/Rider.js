@@ -105,7 +105,7 @@ const Rider = () => {
           handleCancelRide(e, ride_id)
         }
       }}>
-        Cancel this ride
+        Cancel Ride
       </button>
     );
   }
@@ -142,7 +142,7 @@ const Rider = () => {
           handleCompleteRide(e, ride_id)
         }
       }}>
-        Complete this ride
+        Finish Ride
       </button>
     );
   }
@@ -150,9 +150,10 @@ const Rider = () => {
 
 
   return (
-    <div className="container">
+    <div className="ride-his">
       <header className="riderPage">
-      <h3>Welcome Rider! {currentUser.first_name} {currentUser.last_name}</h3>
+      <h3>Welcome!</h3>
+      <h3>Rider {currentUser.first_name} </h3>
       </header>
       <br></br>
 
@@ -161,9 +162,9 @@ const Rider = () => {
           
           <div>
             <p><strong>You do not have any on-going rides</strong></p>
-            <p><strong>Please press the button to check for any in-coming ride requests</strong></p>
+            <p><strong>Please press the button to check for any ride requests!</strong></p>
             <button className="btn btn-primary" onClick={handleAllPendingRides}>
-              Check
+              Check Ride
             </button>
             <br></br>
             <br></br>

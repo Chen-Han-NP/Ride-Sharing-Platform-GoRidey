@@ -19,10 +19,6 @@ const validateNewPassword = (value) => {
     );
   }
 };
-
-
-
-
 const validMobileNumber = (value) => {
   if (value.length !== 8 || !containsOnlyNumbers(value)) {
     return (
@@ -134,8 +130,10 @@ const Profile = () => {
           () => {
             setMessage("Updated successful!");
             setSuccessful(true);
-            navigate("/profile");
-            window.location.reload();
+            setTimeout(function () {
+                  navigate("/profile");
+                  window.location.reload();
+          }, 2000);
           },
           (error) => {
             var resMessage = ""
@@ -234,7 +232,7 @@ const Profile = () => {
 
 
   return (
-    <div className="container">
+    <div className="auth-inner">
 
       { !showForm && !showPWform ? (
         <div>
@@ -269,10 +267,9 @@ const Profile = () => {
         )
       } 
       
-      <button className="btn btn-secondary" onClick={(e) => onChangeShowForm(e)}>Edit Profile</button>
+      <button className="btn btn-secondary d-grid" onClick={(e) => onChangeShowForm(e)}>Edit Profile</button>
       <br></br>
-      <br></br>
-      <button className="btn btn-danger" onClick={(e) => onChangeShowPWform(e)}>Edit Password</button>
+      <button className="btn btn-danger d-grid" onClick={(e) => onChangeShowPWform(e)}>Edit Password</button>
       
       </div>
       ) : ( 
@@ -280,11 +277,9 @@ const Profile = () => {
                     
       <div>
         <header className="jumbotron">
-          <h3>
-          <button className="btn btn-primary" onClick={(e) => onChangeShowForm(e)}>Back</button>   Update Profile 
-          </h3>
+        <h3> <button className="btn btn-info" onClick={(e) => onChangeShowForm(e)}>Back</button>&nbsp;
+        Update Profile</h3> 
         </header>
-        <br></br>
       <Form onSubmit={handleEditForm} ref={form}>
         {!successful && (
           
@@ -367,12 +362,10 @@ const Profile = () => {
 
                 
     <div>
-    <header className="jumbotron">
-      <h3>
-      <button className="btn btn-primary" onClick={(e) => onChangeShowPWform(e)}>Back</button>   Update Password
-      </h3>
-    </header>
-    <br></br>
+      <header className="jumbotron">
+      <h4> <button className="btn btn-info" onClick={(e) => onChangeShowPWform(e)}>Back</button>
+      Update Password</h4> 
+      </header>
   <Form onSubmit={handleEditPwForm} ref={PWform}>
     {!successful && (
       

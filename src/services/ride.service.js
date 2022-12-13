@@ -37,7 +37,7 @@ const newride = (user_name, user_phone, pickup_code, dropoff_code, ride_status) 
 const currentRide = () => {
     return axios.get(RIDE_URL + "current" , axiosConfig)
     .then((response) => {
-        if (response.data.ride_id === 0) {
+        if (response.data.ride_id === '0') {
             return
         } else {
             localStorage.setItem("ride", JSON.stringify(response.data));
@@ -80,6 +80,10 @@ const allrides = (status) => {
         FULL_URL = RIDE_URL + "allrides"
         return axios.get(FULL_URL, axiosConfig)
             .then((response) => {
+                if (response.data === null) {
+                    localStorage.setItem("allrides", JSON.stringify([]))
+                    return []
+                }
                 var rides = response.data.map(obj => {
                     return {...obj, ride_dt: new Date(obj.ride_dt)};
                 });
@@ -104,7 +108,7 @@ const allrides = (status) => {
         });
         
     } else {
-        return
+        return []
     }
       
 };

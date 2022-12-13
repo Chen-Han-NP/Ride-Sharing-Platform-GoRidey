@@ -59,11 +59,6 @@ const Login = () => {
                 () => {
                   navigate("/");
                   window.location.reload();
-                },
-                (error) => {
-                  var resMessage = "Error: " + error.response.status.toString() + ": " + error.response.data;
-                  setLoading(false);
-                  setMessage(resMessage);    
                 }
               )
             },
@@ -71,13 +66,16 @@ const Login = () => {
               var resMessage = "Error: " + error.response.status.toString() + ": " + error.response.data;
               setLoading(false);
               setMessage(resMessage);
+
             }
+            
           )
         },
         (error) => {
           var resMessage = "Error: " + error.response.status.toString() + ": " + error.response.data;
           setLoading(false);
           setMessage(resMessage);
+
         }
       );
     } else {
@@ -86,16 +84,9 @@ const Login = () => {
   };
 
   return (
-    <div className="col-md-12">
-      <header className="homePage">
-        <h3>Welcome to GoRidey</h3>
-        <br></br>
-        <h4>Log In</h4>
-      </header>
-      <div className="card card-container">
-   
         <Form onSubmit={handleLogin} ref={form}>
-          <div className="form-group">
+          <h3>Login</h3>
+          <div className="mb-3">
             <label htmlFor="email">Email Address</label>
             <Input
               type="text"
@@ -107,7 +98,7 @@ const Login = () => {
             />
           </div>
 
-          <div className="form-group">
+          <div className="mb-3">
             <label htmlFor="password">Password</label>
             <Input
               type="password"
@@ -119,7 +110,7 @@ const Login = () => {
             />
           </div>
 
-          <div className="form-group">
+          <div className="d-grid">
             <button className="btn btn-primary btn-block" disabled={loading}>
               {loading && (
                 <span className="spinner-border spinner-border-sm"></span>
@@ -129,7 +120,7 @@ const Login = () => {
           </div>
 
           {message && (
-            <div className="form-group">
+            <div className="mb-3">
               <div className="alert alert-danger" role="alert">
                 {message}
               </div>
@@ -137,8 +128,6 @@ const Login = () => {
           )}
           <CheckButton style={{ display: "none" }} ref={checkBtn} />
         </Form>
-      </div>
-    </div>
   );
 };
 

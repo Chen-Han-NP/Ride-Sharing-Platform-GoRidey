@@ -85,7 +85,6 @@ type Message struct {
 }
 
 // ====== GLOBAL VARIABLES ========
-var users Users
 var jwtKey = []byte("lhdrDMjhveyEVcvYFCgh1dBR2t7GM0YJ")        // A secure JWT Token for decoding, DO NOT SHARE
 var sqlConnectionString = "root:password@tcp(127.0.0.1:3306)/" // MySQL Connection string
 var database = "RideSharingPlatform"                           // MySQL common database for all three microservices
@@ -111,25 +110,39 @@ func checkEmailIsExist(db *sql.DB, new_email string) bool {
 	return false
 }
 
-// Get all the users from the db and store in the Users
-func getAllUserFromDB(db *sql.DB) (Users, error) {
-	users := Users{}
-
-	results, err := db.Query("SELECT * FROM User")
+func verifyPassword(db *sql.DB, email string, password string) bool {
+	query := fmt.Sprintf(`SELECT password FROM User WHERE email_address = '%s'`, email)
+	results, err := db.Query(query)
 	if err != nil {
-		return users, err
+		panic(err.Error())
+	}
+	var correct_pw string
+	for results.Next() {
+		err = results.Scan(&correct_pw)
+		if err != nil {
+			panic(err.Error())
+		}
+		if password == correct_pw {
+			return true
+		}
+	}
+	return false
+}
 
+func getUserFromDB(db *sql.DB, email_address string) (User, error) {
+	query := fmt.Sprintf(`SELECT * FROM User WHERE email_address = '%s'`, email_address)
+	var user User
+	results, err := db.Query(query)
+	if err != nil {
+		return user, err
 	}
 	for results.Next() {
-		var user User
-
 		err = results.Scan(&user.UserID, &user.UserType, &user.EmailAddress, &user.Password)
 		if err != nil {
-			return users, err
+			return user, err
 		}
-		users = append(users, user)
 	}
-	return users, nil
+	return user, err
 }
 
 // Get the Passenger from the db using email
@@ -339,8 +352,7 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 // RETURN CommonUser with JWT Token embeded in a Cookie
 func Login(w http.ResponseWriter, r *http.Request) {
 	var creds Credentials
-	var user_type string
-	var user_id string
+	var user User
 
 	// Init the db
 	db, err := sql.Open("mysql", sqlConnectionString+database)
@@ -356,7 +368,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	} else if r.Method == "POST" {
 		// Receive user login information in JSON
 		// and decode into User
-		expectedPassword := ""
 		err := json.NewDecoder(r.Body).Decode(&creds)
 		if err != nil {
 			// If the structure of the body is wrong, return an HTTP error
@@ -364,24 +375,27 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Get all the users from the db
-		users, err = getAllUserFromDB(db)
-		if err != nil {
-			panic(err.Error())
+		// Check if email exists
+		exists := checkEmailIsExist(db, creds.EmailAddress)
+		if !exists {
+			w.WriteHeader(http.StatusUnauthorized) //401
+			json.NewEncoder(w).Encode("Email Not Found!")
+			return
 		}
-		// Find the matched user and check if the password is correct
-		for _, user := range users {
-			if creds.EmailAddress == user.EmailAddress {
-				expectedPassword = user.Password
-				user_type = user.UserType
-				user_id = strconv.Itoa(user.UserID)
-			}
-		}
-		// If passwords not matched
-		if expectedPassword == "" {
+
+		//Check if pw exists
+		verified := verifyPassword(db, creds.EmailAddress, creds.Password)
+		if !verified {
 			w.WriteHeader(http.StatusUnauthorized) //401
 			json.NewEncoder(w).Encode("Wrong password!")
 			return
+		}
+
+		// Get the respective user
+		user, err = getUserFromDB(db, creds.EmailAddress)
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound) //404
+			panic(err.Error())
 		}
 
 		// Now set the JWT token and the cookie
@@ -391,8 +405,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		//Create JWT claims, which includes the email, usertype, id and expiry time
 		claims := &Claims{
 			EmailAddress: creds.EmailAddress,
-			UserType:     user_type,
-			UserID:       user_id,
+			UserType:     user.UserType,
+			UserID:       strconv.Itoa(user.UserID),
 			RegisteredClaims: jwt.RegisteredClaims{
 				// In JWT, the expiry time is expressed as unix milliseconds
 				ExpiresAt: jwt.NewNumericDate(expirationTime),
@@ -422,14 +436,14 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		// If the user logs in with the correct credentials, this handler will then set a cookie on the client
 		// side with the JWT value. Once the cookie is set on a client, it is sent along with every request henceforth.
 		// Now return the CommonUser
-		if user_type == "passenger" {
+		if user.UserType == "passenger" {
 			passenger, err := getPassenger(db, creds.EmailAddress)
 			if err != nil {
 				panic(err.Error())
 			}
 			cUser := CommonUser{
-				UserID:       user_id,
-				UserType:     user_type,
+				UserID:       strconv.Itoa(user.UserID),
+				UserType:     user.UserType,
 				EmailAddress: passenger.EmailAddress,
 				Password:     passenger.Password,
 				FirstName:    passenger.FirstName,
@@ -441,14 +455,14 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			json.NewEncoder(w).Encode(cUser)
 			return
 
-		} else if user_type == "rider" {
+		} else if user.UserType == "rider" {
 			rider, err := getRider(db, creds.EmailAddress)
 			if err != nil {
 				panic(err.Error())
 			}
 			cUser := CommonUser{
-				UserID:       user_id,
-				UserType:     user_type,
+				UserID:       strconv.Itoa(user.UserID),
+				UserType:     user.UserType,
 				EmailAddress: rider.EmailAddress,
 				Password:     rider.Password,
 				FirstName:    rider.FirstName,
@@ -594,11 +608,6 @@ func main() {
 		panic(err.Error())
 	}
 	defer db.Close()
-
-	users, err = getAllUserFromDB(db)
-	if err != nil {
-		panic(err.Error())
-	}
 
 	router.HandleFunc("/api/auth/signup/{user_type}", SignUp).Methods("POST", "OPTIONS")
 	router.HandleFunc("/api/auth/login", Login).Methods("POST", "OPTIONS")
