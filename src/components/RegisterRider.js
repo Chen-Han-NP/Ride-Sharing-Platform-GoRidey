@@ -120,12 +120,16 @@ const RegisterRider = () => {
 
           setMessage("Registered successfully!");
           setSuccessful(true);
+          setTimeout(function () {
+            navigate("/login");
+            window.location.reload();
+          }, 2000);
           
 
         },
         (error) => {
           var resMessage = ""
-          if (error.response.status == 409) {
+          if (error.response.status === 409) {
             resMessage = "This email has been registered!"
           } else {
             resMessage =

@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang-jwt/jwt/v4"
@@ -72,13 +73,16 @@ type Ride struct {
 	CarLicNumber   string `json:"car_lic_number"`
 	PickupCode     string `json:"pickup_code"`
 	DropoffCode    string `json:"dropoff_code"`
+	RideDT         string `json:"ride_dt"`
+	PickupDT       string `json:"pickup_dt"`
+	DropoffDT      string `json:"dropoff_dt"`
 	RideStatus     string `json:"ride_status"`
 }
 
 // ====== GLOBAL VARIABLES ========
 var sqlConnectionString = "root:password@tcp(127.0.0.1:3306)/"
 var database = "RideSharingPlatform"
-var jwtKey = []byte("lhdrDMjhveyEVcvYFCgh1dBR2t7GM0YJ")
+var jwtKey = []byte("lhdrDMjhveyEVcvYFCgh1dBR2t7GM0YJ") // PLEASE DO NOT SHARE
 
 // ====== FUNCTONS =========
 func verifyJWT(w http.ResponseWriter, r *http.Request) (Claims, error) {
@@ -166,9 +170,7 @@ func getRide(db *sql.DB, ride_id string) (Ride, error) {
 	var rideId int
 	var passengerId int
 	var riderId sql.NullInt64
-	var riderName sql.NullString
-	var riderPhone sql.NullString
-	var carLicNumber sql.NullString
+	var riderName, riderPhone, carLicNumber, pickupDT, dropoffDT sql.NullString
 
 	select_query := fmt.Sprintf(`SELECT * FROM Ride WHERE ride_id = %s;`, ride_id)
 
@@ -178,7 +180,7 @@ func getRide(db *sql.DB, ride_id string) (Ride, error) {
 	}
 
 	for results.Next() {
-		err = results.Scan(&rideId, &passengerId, &ride.PassengerName, &ride.PassengerPhone, &riderId, &riderName, &riderPhone, &carLicNumber, &ride.PickupCode, &ride.DropoffCode, &ride.RideStatus)
+		err = results.Scan(&rideId, &passengerId, &ride.PassengerName, &ride.PassengerPhone, &riderId, &riderName, &riderPhone, &carLicNumber, &ride.PickupCode, &ride.DropoffCode, &ride.RideDT, &pickupDT, &dropoffDT, &ride.RideStatus)
 		if err != nil {
 			return ride, err
 		}
@@ -186,6 +188,7 @@ func getRide(db *sql.DB, ride_id string) (Ride, error) {
 
 	ride.RideID = strconv.Itoa(int(rideId))
 	ride.PassengerID = strconv.Itoa(int(passengerId))
+	// Check and store all the nullable values in the ride
 	if riderId.Valid {
 		ride.RiderID = strconv.Itoa(int(riderId.Int64))
 	}
@@ -198,6 +201,13 @@ func getRide(db *sql.DB, ride_id string) (Ride, error) {
 	if carLicNumber.Valid {
 		ride.CarLicNumber = carLicNumber.String
 	}
+	if pickupDT.Valid {
+		ride.PickupDT = pickupDT.String
+	}
+	if dropoffDT.Valid {
+		ride.DropoffDT = dropoffDT.String
+	}
+
 	return ride, nil
 }
 
@@ -209,7 +219,7 @@ func getCurrentRideId(db *sql.DB, user_id string, user_type string) (string, err
 	var select_query string
 
 	if user_type == "passenger" {
-		select_query = fmt.Sprintf(`SELECT ride_id FROM Ride WHERE passenger_id = %s && ride_status = "Riding";`, user_id)
+		select_query = fmt.Sprintf(`SELECT ride_id FROM Ride WHERE passenger_id = %s && (ride_status = "Riding" || ride_status = "Pending");`, user_id)
 	} else if user_type == "rider" {
 		select_query = fmt.Sprintf(`SELECT ride_id FROM Ride WHERE rider_id = %s && ride_status = "Riding";`, user_id)
 	}
@@ -233,12 +243,13 @@ func getAllRides(db *sql.DB, user_type string, user_id string, ride_status strin
 	var select_query string
 	var rides []Ride
 
+	// IF did not decare ride status, get all the ride from the specific user
 	if ride_status == "" {
-		select_query = fmt.Sprintf(`SELECT * FROM Ride WHERE %s_id = %s;`, user_type, user_id)
+		select_query = fmt.Sprintf(`SELECT ride_id FROM Ride WHERE %s_id = %s;`, user_type, user_id)
 	} else if ride_status == "Pending" { // If a rider want to see all the pending rides
-		select_query = `SELECT * FROM Ride WHERE ride_status = 'Pending'`
-	} else {
-		select_query = fmt.Sprintf(`SELECT * FROM Ride WHERE %s_id = %s && ride_status = '%s';`, user_type, user_id, ride_status)
+		select_query = `SELECT ride_id FROM Ride WHERE ride_status = 'Pending'`
+	} else { // Get all the rides from the specific user using a filter (ride_status)
+		select_query = fmt.Sprintf(`SELECT ride_id FROM Ride WHERE %s_id = %s && ride_status = '%s';`, user_type, user_id, ride_status)
 	}
 
 	results, err := db.Query(select_query)
@@ -247,32 +258,14 @@ func getAllRides(db *sql.DB, user_type string, user_id string, ride_status strin
 	}
 
 	for results.Next() {
-		var ride Ride
-		var rideId int
-		var passengerId int
-		var riderId sql.NullInt64
-		var riderName sql.NullString
-		var riderPhone sql.NullString
-		var carLicNumber sql.NullString
-
-		err = results.Scan(&rideId, &passengerId, &ride.PassengerName, &ride.PassengerPhone, &riderId, &riderName, &riderPhone, &carLicNumber, &ride.PickupCode, &ride.DropoffCode, &ride.RideStatus)
+		var ride_id int
+		err = results.Scan(&ride_id)
 		if err != nil {
 			return rides, err
 		}
-
-		ride.RideID = strconv.Itoa(int(rideId))
-		ride.PassengerID = strconv.Itoa(int(passengerId))
-		if riderId.Valid {
-			ride.RiderID = strconv.Itoa(int(riderId.Int64))
-		}
-		if riderName.Valid {
-			ride.RiderName = riderName.String
-		}
-		if riderPhone.Valid {
-			ride.RiderPhone = riderPhone.String
-		}
-		if carLicNumber.Valid {
-			ride.CarLicNumber = carLicNumber.String
+		ride, err := getRide(db, strconv.Itoa(ride_id))
+		if err != nil {
+			return rides, err
 		}
 		rides = append(rides, ride)
 	}
@@ -283,7 +276,6 @@ func getAllRides(db *sql.DB, user_type string, user_id string, ride_status strin
 // Allow Passenger to initate a new ride
 // And return the ride-info back to the user
 func NewRide(w http.ResponseWriter, r *http.Request) {
-	//w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
 
 	// Verify JWT Token
 	claims, err := verifyJWT(w, r)
@@ -303,7 +295,6 @@ func NewRide(w http.ResponseWriter, r *http.Request) {
 	// Variables
 	var ride Ride
 	user_id := claims.UserID
-	//email := claims.EmailAddress
 	user_type := claims.UserType
 
 	// Check that only passsenger can initiate the ride
@@ -321,24 +312,29 @@ func NewRide(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check req method
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusOK) //200
 		return
 	} else if r.Method == "POST" {
-		w.WriteHeader(http.StatusAccepted) // 202
+
 		reqBody, _ := ioutil.ReadAll(r.Body)
 		json.Unmarshal(reqBody, &ride)
+
 		ride.PassengerID = user_id
+		var datetime = time.Now()
+		ride.RideDT = datetime.Format("2006-01-02 15:04:05")
 
 		// Insert into Ride table
 		userQueryStatement := fmt.Sprintf(`
-		INSERT INTO Ride(passenger_id, passenger_name, passenger_phone, pick_up_code, drop_off_code, ride_status)
-		VALUES ( %s, '%s', '%s', '%s', '%s', '%s');`, ride.PassengerID, ride.PassengerName, ride.PassengerPhone, ride.PickupCode, ride.DropoffCode, ride.RideStatus)
+		INSERT INTO Ride(passenger_id, passenger_name, passenger_phone, pick_up_code, drop_off_code, ride_dt, ride_status)
+		VALUES ( %s, '%s', '%s', '%s', '%s', '%s', '%s');`, ride.PassengerID, ride.PassengerName, ride.PassengerPhone, ride.PickupCode, ride.DropoffCode, ride.RideDT, ride.RideStatus)
 		result, err := db.Exec(userQueryStatement)
 		if err != nil {
 			panic(err.Error())
 			return
 		}
+		// Get the ride_id
 		id, err := result.LastInsertId()
 		if err != nil {
 			panic(err.Error())
@@ -347,7 +343,6 @@ func NewRide(w http.ResponseWriter, r *http.Request) {
 
 		// Set the ID in the Ride class
 		ride.RideID = strconv.Itoa(int(id))
-
 		json.NewEncoder(w).Encode(ride)
 		return
 
@@ -358,9 +353,7 @@ func NewRide(w http.ResponseWriter, r *http.Request) {
 }
 
 // Allow passenger to get a ride information by entering a ride id
-// and return the ride-info back to the user
 func GetRide(w http.ResponseWriter, r *http.Request) {
-	//w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	// Get ride_id from params
 	params := mux.Vars(r)
@@ -381,6 +374,7 @@ func GetRide(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
+	// Check req method
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusOK)
 		return
@@ -471,7 +465,6 @@ func AllRides(w http.ResponseWriter, r *http.Request) {
 
 // Allow a rider to get his current on-going ride
 func CurrentRide(w http.ResponseWriter, r *http.Request) {
-	//w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	// Verify JWT Token
 	cookie, err := verifyJWT(w, r)
@@ -496,7 +489,7 @@ func CurrentRide(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		return
 	} else if r.Method == "GET" {
-		// First get the ride id of the current ride -> On-going
+		// First get the ride id of the current ride -> Pending/Riding
 		rideId, err := getCurrentRideId(db, user_id, user_type)
 		if err != nil {
 			panic(err.Error())
@@ -521,9 +514,8 @@ func CurrentRide(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Allow a Rider to accept any ride been posted by passenger E.g. Rides with Pending status
+// Allow a Rider to accept a ride posted by any passenger to start the trip
 func AcceptRide(w http.ResponseWriter, r *http.Request) {
-	//w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	// Get ride_id from params
 	params := mux.Vars(r)
@@ -544,14 +536,14 @@ func AcceptRide(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
-	// check if the user_type is rider or not
+	// check if the user_type is rider
 	if claims.UserType != "rider" {
 		w.WriteHeader(http.StatusNotAcceptable) //406
 		json.NewEncoder(w).Encode("Passenger does not have the permission to accept a ride")
 		return
 	}
 
-	// check if the rider has any on-going rides or not
+	// check if the rider has any on-going rides
 	all_rides, err := getAllRides(db, claims.UserType, claims.UserID, "Riding")
 	if err != nil {
 		w.WriteHeader(http.StatusNotAcceptable) // 406
@@ -565,6 +557,7 @@ func AcceptRide(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check req method
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusOK)
 		return
@@ -586,8 +579,7 @@ func AcceptRide(w http.ResponseWriter, r *http.Request) {
 
 		// Get the rider info from the db
 		var rider Rider
-		var select_query string
-		select_query = fmt.Sprintf(`
+		select_query := fmt.Sprintf(`
 			SELECT u.email_address, u.password, r.first_name, r.last_name, r.mobile_number, r.ic_number, r.car_lic_number FROM User u
 			INNER JOIN Rider r
 			ON u.user_id = r.rider_id
@@ -599,6 +591,7 @@ func AcceptRide(w http.ResponseWriter, r *http.Request) {
 			panic(err.Error())
 			return
 		}
+
 		for results.Next() {
 			err = results.Scan(&rider.EmailAddress, &rider.Password, &rider.FirstName, &rider.LastName, &rider.MobileNumber, &rider.IcNumber, &rider.CarLicNumber)
 			if err != nil {
@@ -613,20 +606,22 @@ func AcceptRide(w http.ResponseWriter, r *http.Request) {
 		ride.RiderName = rider.FirstName + " " + rider.LastName
 		ride.RiderPhone = rider.MobileNumber
 		ride.CarLicNumber = rider.CarLicNumber
+		var datetime = time.Now()
+		ride.PickupDT = datetime.Format("2006-01-02 15:04:05")
 
 		update_statement := fmt.Sprintf(`UPDATE Ride
-				SET rider_id = %s, rider_name = '%s', rider_phone = '%s', car_lic_number = '%s', ride_status = '%s'
-				WHERE ride_id = %s;`, ride.RiderID, ride.RiderName, ride.RiderPhone, ride.CarLicNumber, ride.RideStatus, ride.RideID)
+				SET rider_id = %s, rider_name = '%s', rider_phone = '%s', car_lic_number = '%s', ride_status = '%s', pick_up_dt = '%s'
+				WHERE ride_id = %s;`, ride.RiderID, ride.RiderName, ride.RiderPhone, ride.CarLicNumber, ride.RideStatus, ride.PickupDT, ride.RideID)
 
 		result, err := db.Exec(update_statement)
 		if err != nil {
-			w.WriteHeader(http.StatusNotAcceptable)
+			w.WriteHeader(http.StatusNotAcceptable) //406
 			panic(err.Error())
 			return
 		}
 		rows_affected, err := result.RowsAffected()
 		if err != nil {
-			w.WriteHeader(http.StatusNotAcceptable)
+			w.WriteHeader(http.StatusNotAcceptable) //406
 			panic(err.Error())
 			return
 		}
@@ -639,7 +634,7 @@ func AcceptRide(w http.ResponseWriter, r *http.Request) {
 		}
 
 	} else {
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusNotFound) //404
 		return
 	}
 }
@@ -647,7 +642,6 @@ func AcceptRide(w http.ResponseWriter, r *http.Request) {
 // Allow Rider the complete the ride after they have reached the destination,
 // The ride status changes to "Completed"
 func CompleteRide(w http.ResponseWriter, r *http.Request) {
-	//w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	// Get ride_id from params
 	params := mux.Vars(r)
@@ -693,11 +687,13 @@ func CompleteRide(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		var datetime = time.Now()
+		ride.DropoffDT = datetime.Format("2006-01-02 15:04:05")
 		ride.RideStatus = "Completed"
 
 		update_statement := fmt.Sprintf(`UPDATE Ride
-		SET ride_status = '%s'
-		WHERE ride_id = %s;`, ride.RideStatus, ride.RideID)
+		SET ride_status = '%s', drop_off_dt = '%s'
+		WHERE ride_id = %s;`, ride.RideStatus, ride.DropoffDT, ride.RideID)
 
 		result, err := db.Exec(update_statement)
 		if err != nil {
@@ -727,7 +723,6 @@ func CompleteRide(w http.ResponseWriter, r *http.Request) {
 // When a rider has Accpeted the ride, the passenger is unable to cancel the ride
 // The passenger will have to communicate with the Rider to cancel the ride for him when the ride status is "Riding"
 func CancelRide(w http.ResponseWriter, r *http.Request) {
-	//w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	// Get ride_id from params
 	params := mux.Vars(r)
@@ -811,16 +806,9 @@ func CancelRide(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	router := mux.NewRouter()
-	/*
-		c := cors.New(cors.Options{
-			AllowedOrigins:   []string{"http://localhost", "http://localhost:3000"},
-			AllowCredentials: true,
-			Debug:            true,
-		})
-	*/
 
 	router.HandleFunc("/api/ride/newride", NewRide).Methods("POST", "OPTIONS")
-	router.HandleFunc("/api/ride/getride/{ride_id}", GetRide).Methods("GET", "PUT", "OPTIONS")
+	router.HandleFunc("/api/ride/getride/{ride_id}", GetRide).Methods("GET", "OPTIONS")
 	router.HandleFunc("/api/ride/current", CurrentRide).Methods("GET", "OPTIONS")
 	router.HandleFunc("/api/ride/allrides", AllRides).Methods("GET", "OPTIONS")
 	router.HandleFunc("/api/ride/accept/{ride_id}", AcceptRide).Methods("GET", "OPTIONS")
@@ -828,8 +816,6 @@ func main() {
 	router.HandleFunc("/api/ride/cancel/{ride_id}", CancelRide).Methods("GET", "OPTIONS")
 
 	fmt.Println("Listening at port 5052")
-	//handler := c.Handler(router)
 
-	//log.Fatal(http.ListenAndServe(":5052", handler))
 	log.Fatal(http.ListenAndServe(":5052", router))
 }

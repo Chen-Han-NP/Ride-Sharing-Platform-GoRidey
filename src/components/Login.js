@@ -59,24 +59,23 @@ const Login = () => {
                 () => {
                   navigate("/");
                   window.location.reload();
+                },
+                (error) => {
+                  var resMessage = "Error: " + error.response.status.toString() + ": " + error.response.data;
+                  setLoading(false);
+                  setMessage(resMessage);    
                 }
               )
+            },
+            (error) => {
+              var resMessage = "Error: " + error.response.status.toString() + ": " + error.response.data;
+              setLoading(false);
+              setMessage(resMessage);
             }
           )
         },
         (error) => {
-          var resMessage;
-          if (error.response.status === 401) {
-            resMessage = "Please try again!"
-          } else {
-            resMessage = 
-            (error.response &&
-              error.response.data &&
-              error.response.data.message) ||
-            error.message ||
-            error.toString();
-          }
-
+          var resMessage = "Error: " + error.response.status.toString() + ": " + error.response.data;
           setLoading(false);
           setMessage(resMessage);
         }

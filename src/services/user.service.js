@@ -9,7 +9,6 @@ axios.defaults.withCredentials = true
 let axiosConfig = {
     headers: {
         'Content-Type': 'text/plain',
-       // "Access-Control-Allow-Origin": "http://localhost:3000"
     },
     withCredentials : true,
 }
@@ -73,7 +72,7 @@ const updatePassword = (password) => {
     "password" : password
 }
 
-  return axios.put(API_URL + "password" , putBody )
+  return axios.post(API_URL + "password" , putBody, axiosConfig)
               .then((response) => {
                 return response.status;
             });
