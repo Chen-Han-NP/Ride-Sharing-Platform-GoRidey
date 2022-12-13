@@ -15,6 +15,7 @@ import (
 )
 
 // ==== STRUCTs ========
+// Struct cooresponds to the User class in db
 type User struct {
 	UserID       int    `json:"user_id"`
 	UserType     string `json:"user_type"`
@@ -22,6 +23,7 @@ type User struct {
 	Password     string `json:"password"`
 }
 
+// Struct for JWT Token stored in the Cookie
 type Claims struct {
 	EmailAddress string `json:"email_address"`
 	UserType     string `json:"user_type"`
@@ -29,6 +31,7 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
+// Struct cooresponds to the Passenger class in db
 type Passenger struct {
 	EmailAddress string `json:"email_address"`
 	Password     string `json:"password"`
@@ -37,6 +40,7 @@ type Passenger struct {
 	MobileNumber string `json:"mobile_number"`
 }
 
+// Struct cooresponds to the Rider class in db
 type Rider struct {
 	EmailAddress string `json:"email_address"`
 	Password     string `json:"password"`
@@ -63,7 +67,7 @@ type CommonUser struct {
 // ====== GLOBAL VARIABLES ========
 var sqlConnectionString = "root:password@tcp(127.0.0.1:3306)/"
 var database = "RideSharingPlatform"
-var jwtKey = []byte("lhdrDMjhveyEVcvYFCgh1dBR2t7GM0YJ")
+var jwtKey = []byte("lhdrDMjhveyEVcvYFCgh1dBR2t7GM0YJ") // PLEASE DO NOT SHARE
 
 // ====== FUNCTONS =========
 func verifyJWT(w http.ResponseWriter, r *http.Request) (Claims, error) {
@@ -112,8 +116,8 @@ func verifyJWT(w http.ResponseWriter, r *http.Request) (Claims, error) {
 // GET user info
 // UPDATE user in the db
 func GetUser(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Credentials", "true")
 
+	// Verify the JWT Token and get the Claim info
 	claims, err := verifyJWT(w, r)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
@@ -121,12 +125,14 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Init DB
 	db, err := sql.Open("mysql", sqlConnectionString+database)
 	if err != nil {
 		panic(err.Error())
 	}
 	defer db.Close()
 
+	// Variables
 	email_address := claims.EmailAddress
 	user_type := claims.UserType
 	user_id := claims.UserID
@@ -135,12 +141,13 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 	var rider_found Rider
 	var select_query string
 
+	// Check req method
 	if r.Method == "OPTIONS" {
-		fmt.Println("Lol")
 		w.WriteHeader(http.StatusOK) //200
 		return
 	} else if r.Method == "GET" {
 		if user_type == "passenger" {
+			// Get Passenger from DB
 			select_query = fmt.Sprintf(`
 			SELECT u.email_address, u.password, p.first_name, p.last_name, p.mobile_number FROM User u
 			INNER JOIN Passenger p
@@ -179,7 +186,8 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 			return
 
 		} else if user_type == "rider" {
-			// Retrieve the rider info out first
+
+			// Retrieve the Rider
 			select_query = fmt.Sprintf(`
 			SELECT u.email_address, u.password, r.first_name, r.last_name, r.mobile_number, r.ic_number, r.car_lic_number FROM User u
 			INNER JOIN Rider r
@@ -216,8 +224,10 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 			json.NewEncoder(w).Encode(cUser)
 			return
 		}
-		// NOTE: Changed to POST instead of PUT is because in the client-side, axios in react does not support sending credentials over
-		// when using PUT as req method, I have tried both PUT and PATCH but both does not work
+
+		// NOTE: Changed to POST instead of PUT because in the client-side,
+		// react axio does not support sending credentials over when using PUT as req method,
+		//I have tried both PUT and PATCH, it seems like a bug at axio.
 	} else if r.Method == "POST" {
 		var update_query string
 
@@ -261,14 +271,15 @@ WHERE u.user_id = %s;`, passenger.FirstName, passenger.LastName, passenger.Mobil
 					CarLicNumber: "",
 				}
 				json.NewEncoder(w).Encode(cUser)
-
 				return
+
 			} else if rows_affected == 0 {
 				w.WriteHeader(http.StatusBadRequest) // 400
-				json.NewEncoder(w).Encode("Nothing had changed")
+				json.NewEncoder(w).Encode("Nothing has changed")
 				return
+
 			} else {
-				w.WriteHeader(http.StatusNotFound)
+				w.WriteHeader(http.StatusNotFound) //404
 				return
 			}
 
@@ -316,7 +327,7 @@ WHERE u.user_id = %s;`, rider.FirstName, rider.LastName, rider.MobileNumber, rid
 				return
 			} else if rows_affected == 0 {
 				w.WriteHeader(http.StatusBadRequest) // 400
-				json.NewEncoder(w).Encode("Nothing had changed")
+				json.NewEncoder(w).Encode("Nothing has changed")
 				return
 			} else {
 				w.WriteHeader(http.StatusNotFound)
@@ -350,7 +361,7 @@ func UpdatePassword(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusOK)
 		return
-	} else if r.Method == "POST" {
+	} else if r.Method == "POST" { // POST as PUT and PATCH is not supported in react axio to send credentialos over for authentication
 		// get the body of our POST request
 		reqBody, _ := ioutil.ReadAll(r.Body)
 		// unmarshal this into a new Diploma struct

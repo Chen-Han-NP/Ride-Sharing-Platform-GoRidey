@@ -1,5 +1,5 @@
+// This ride.service.js containing all the API request to the microservices - Auth.go required in the project.
 import axios from "axios";
-import {useState} from 'react'
 
 const AUTH_URL = "http://localhost:5050/api/auth/"
 
@@ -37,9 +37,6 @@ const register_rider = (email_address, password, first_name, last_name, mobile_n
 
 
 const login = (email_address, password) => {
-    const responseData = ""
-
-
     return axios.post(AUTH_URL + "login", {
         "email_address": email_address,
         "password": password },
@@ -53,29 +50,6 @@ const login = (email_address, password) => {
             }
         return response.data;
       });
-      
-
-      /*
-     var postBody = {  "email_address": email_address,
-     "password": password };
-
-    fetch(AUTH_URL + "login", {
-        mode: "no-cors",
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body:JSON.stringify(postBody),
-        credentials: 'include'
-    }).then(
-        response => response.json()
-    ).then(
-        data => responseData = data
-    )
-
-    //cons)t content = response.json();
-    console.log(responseData);
-
-    return responseData;
-    */
       
 };
   

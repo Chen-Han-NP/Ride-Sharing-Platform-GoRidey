@@ -1,3 +1,6 @@
+// This microservice aims to provide JWT authentication for Login, Signup and Logout functions.
+// The JWT Token generated upon Logging in will be stored in the Cookie and send over with the response.
+
 package main
 
 import (
@@ -18,7 +21,6 @@ import (
 )
 
 // ==== STRUCTs ========
-
 // struct for incoming Login req
 type Credentials struct {
 	EmailAddress string `json:"email_address"`
@@ -41,9 +43,10 @@ type User struct {
 	Password     string `json:"password"`
 }
 
+// Store a list of users for authenticating email
 type Users []User
 
-// Struct corresponds to the class in db
+// Struct corresponds to the Passenger class in db
 type Passenger struct {
 	EmailAddress string `json:"email_address"`
 	Password     string `json:"password"`
@@ -52,7 +55,7 @@ type Passenger struct {
 	MobileNumber string `json:"mobile_number"`
 }
 
-// Struct corresponds to the class in db
+// Struct corresponds to the Rider class in db
 type Rider struct {
 	EmailAddress string `json:"email_address"`
 	Password     string `json:"password"`
@@ -83,12 +86,12 @@ type Message struct {
 
 // ====== GLOBAL VARIABLES ========
 var users Users
-var jwtKey = []byte("lhdrDMjhveyEVcvYFCgh1dBR2t7GM0YJ")
-var sqlConnectionString = "root:password@tcp(127.0.0.1:3306)/"
-var database = "RideSharingPlatform"
+var jwtKey = []byte("lhdrDMjhveyEVcvYFCgh1dBR2t7GM0YJ")        // A secure JWT Token for decoding, DO NOT SHARE
+var sqlConnectionString = "root:password@tcp(127.0.0.1:3306)/" // MySQL Connection string
+var database = "RideSharingPlatform"                           // MySQL common database for all three microservices
 
 // ======= DB Functions ==========
-
+// Check if email is exist in the users
 func checkEmailIsExist(db *sql.DB, new_email string) bool {
 	query := fmt.Sprintf(`SELECT email_address FROM User WHERE email_address = '%s'`, new_email)
 	results, err := db.Query(query)
@@ -107,6 +110,8 @@ func checkEmailIsExist(db *sql.DB, new_email string) bool {
 	}
 	return false
 }
+
+// Get all the users from the db and store in the Users
 func getAllUserFromDB(db *sql.DB) (Users, error) {
 	users := Users{}
 
@@ -126,6 +131,8 @@ func getAllUserFromDB(db *sql.DB) (Users, error) {
 	}
 	return users, nil
 }
+
+// Get the Passenger from the db using email
 func getPassenger(db *sql.DB, email_address string) (Passenger, error) {
 
 	var passenger_found Passenger
@@ -147,6 +154,8 @@ func getPassenger(db *sql.DB, email_address string) (Passenger, error) {
 	}
 	return passenger_found, nil
 }
+
+// Get the Passenger from the db using email
 func getRider(db *sql.DB, email_address string) (Rider, error) {
 
 	var rider_found Rider
@@ -176,13 +185,7 @@ func getRider(db *sql.DB, email_address string) (Rider, error) {
 // RETURN 417 -> INSERT failed
 func SignUp(w http.ResponseWriter, r *http.Request) {
 
-	//w.Header().Set("Access-Control-Allow-Origin", "*")
-
-	if r.Method == "OPTIONS" {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
+	// http://localhost:5050/api/auth/signup/(rider or passenger)
 	params := mux.Vars(r)
 	user_type := params["user_type"]
 	// get the body of our POST request
@@ -195,171 +198,178 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
-	// Step 1: Check if rider or passenger
-	if user_type == "passenger" {
+	// Check req methods
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	} else if r.Method == "POST" {
 
-		var passenger Passenger
-		json.Unmarshal(reqBody, &passenger)
+		// Step 1: Check if passenger or rider
+		if user_type == "passenger" {
 
-		// check if email exists in the User table
-		isExist := checkEmailIsExist(db, passenger.EmailAddress)
-		if isExist {
-			w.WriteHeader(http.StatusConflict) //409
-			fmt.Println("Duplicated account: " + passenger.EmailAddress)
-			return
-		} else if passenger.EmailAddress == "" || passenger.FirstName == "" || passenger.LastName == "" || passenger.MobileNumber == "" || passenger.Password == "" {
-			w.WriteHeader(http.StatusNotAcceptable) //406
-			fmt.Println("Found empty string")
-			return
-		} else {
-			// Insert into User table
-			userQueryStatement := fmt.Sprintf(`
+			var passenger Passenger
+			json.Unmarshal(reqBody, &passenger)
+
+			// check if email exists in the User table
+			isExist := checkEmailIsExist(db, passenger.EmailAddress)
+			if isExist {
+				w.WriteHeader(http.StatusConflict) //409
+				json.NewEncoder(w).Encode("Duplicated account: " + passenger.EmailAddress)
+				return
+			} else if passenger.EmailAddress == "" || passenger.FirstName == "" || passenger.LastName == "" || passenger.MobileNumber == "" || passenger.Password == "" {
+				w.WriteHeader(http.StatusNotAcceptable) //406
+				json.NewEncoder(w).Encode("Found empty content")
+				return
+			} else {
+				// Insert into User table
+				userQueryStatement := fmt.Sprintf(`
 		INSERT INTO User(user_type, email_address, password)
 		VALUES ('%s', '%s', '%s')`, user_type, passenger.EmailAddress, passenger.Password)
-			result, err := db.Exec(userQueryStatement)
-			if err != nil {
-				panic(err.Error())
-				return
-			}
-			id, err := result.LastInsertId()
-			if err != nil {
-				panic(err.Error())
-				return
-			}
+				result, err := db.Exec(userQueryStatement)
+				if err != nil {
+					panic(err.Error())
+					return
+				}
+				// Get the auto-gen ID
+				id, err := result.LastInsertId()
+				if err != nil {
+					panic(err.Error())
+					return
+				}
 
-			// Upon getting the ID, now insert into Passenger table
-			queryStatement := fmt.Sprintf(`
+				// Upon getting the ID, now insert into Passenger table
+				queryStatement := fmt.Sprintf(`
 		INSERT INTO Passenger
 		VALUES (%d, '%s', '%s', '%s')`,
-				id,
-				passenger.FirstName,
-				passenger.LastName,
-				passenger.MobileNumber)
+					id,
+					passenger.FirstName,
+					passenger.LastName,
+					passenger.MobileNumber)
 
-			result2, err := db.Exec(queryStatement)
-			if err != nil {
-				panic(err.Error())
+				result2, err := db.Exec(queryStatement)
+				if err != nil {
+					panic(err.Error())
+				}
+				rows_affected, err := result2.RowsAffected()
+				if err != nil {
+					panic(err.Error())
+				}
+				if rows_affected == 1 {
+					w.WriteHeader(http.StatusAccepted) //202
+					json.NewEncoder(w).Encode("Passenger Insert Successfully")
+					return
+				} else {
+					w.WriteHeader(http.StatusExpectationFailed) //417
+					json.NewEncoder(w).Encode("Error with inserting")
+					return
+				}
 			}
-			rows_affected, err := result2.RowsAffected()
-			if err != nil {
-				panic(err.Error())
-			}
-			if rows_affected == 1 {
-				w.WriteHeader(http.StatusAccepted) //202
-				json.NewEncoder(w).Encode("Passenger Insert Successfully")
-				fmt.Println("Passenger insert successfully")
+
+		} else if user_type == "rider" {
+			var rider Rider
+			json.Unmarshal(reqBody, &rider)
+
+			// check if email exists in the User table
+			isExist := checkEmailIsExist(db, rider.EmailAddress)
+			if isExist {
+				w.WriteHeader(http.StatusConflict) //409
+				json.NewEncoder(w).Encode("Duplicated account: " + rider.EmailAddress)
+				return
+			} else if rider.EmailAddress == "" || rider.FirstName == "" || rider.LastName == "" || rider.MobileNumber == "" || rider.Password == "" || rider.IcNumber == "" || rider.CarLicNumber == "" {
+				w.WriteHeader(http.StatusNotAcceptable) //406
+				json.NewEncoder(w).Encode("Found empty content")
 				return
 			} else {
-				w.WriteHeader(http.StatusExpectationFailed) //417
-				fmt.Println("Error with inserting")
-				return
-			}
-		}
-
-	} else if user_type == "rider" {
-		var rider Rider
-		json.Unmarshal(reqBody, &rider)
-
-		// Check for empty passenger
-		if rider.EmailAddress == "" || rider.FirstName == "" || rider.LastName == "" || rider.MobileNumber == "" || rider.Password == "" || rider.IcNumber == "" || rider.CarLicNumber == "" {
-			w.WriteHeader(http.StatusNotAcceptable) //406
-			fmt.Println("Found empty string")
-			return
-		}
-
-		// check if email exists
-		isExist := checkEmailIsExist(db, rider.EmailAddress)
-		if isExist {
-			w.WriteHeader(http.StatusConflict) //409
-			fmt.Println("Duplicated account: " + rider.EmailAddress)
-			return
-		} else {
-
-			// Insert into User table
-			userQueryStatement := fmt.Sprintf(`
+				// Insert into User table
+				userQueryStatement := fmt.Sprintf(`
 		INSERT INTO User(user_type, email_address, password)
 		VALUES ('%s', '%s', '%s')`, user_type, rider.EmailAddress, rider.Password)
-			result, err := db.Exec(userQueryStatement)
-			if err != nil {
-				panic(err.Error())
-				return
-			}
-			id, err := result.LastInsertId()
-			if err != nil {
-				panic(err.Error())
-				return
-			}
+				result, err := db.Exec(userQueryStatement)
+				if err != nil {
+					panic(err.Error())
+					return
+				}
+				id, err := result.LastInsertId()
+				if err != nil {
+					panic(err.Error())
+					return
+				}
 
-			// Upon getting the ID, now insert into Passenger table
-			queryStatement := fmt.Sprintf(`
+				// Upon getting the ID, now insert into Rider table
+				queryStatement := fmt.Sprintf(`
 		INSERT INTO Rider
 		VALUES (%d, '%s', '%s', '%s', '%s', '%s')`,
-				id,
-				rider.FirstName,
-				rider.LastName,
-				rider.MobileNumber,
-				rider.IcNumber,
-				rider.CarLicNumber)
+					id,
+					rider.FirstName,
+					rider.LastName,
+					rider.MobileNumber,
+					rider.IcNumber,
+					rider.CarLicNumber)
 
-			result2, err := db.Exec(queryStatement)
-			if err != nil {
-				panic(err.Error())
+				results, err := db.Exec(queryStatement)
+				if err != nil {
+					panic(err.Error())
+				}
+				rows_affected, err := results.RowsAffected()
+				if err != nil {
+					panic(err.Error())
+				}
+				if rows_affected == 1 {
+					w.WriteHeader(http.StatusAccepted) //202
+					json.NewEncoder(w).Encode("Rider Insert Successfully")
+					return
+				} else {
+					w.WriteHeader(http.StatusExpectationFailed) //417
+					json.NewEncoder(w).Encode("Error with inserting")
+					return
+				}
 			}
-			rows_affected, err := result2.RowsAffected()
-			if err != nil {
-				panic(err.Error())
-			}
-			if rows_affected == 1 {
-				w.WriteHeader(http.StatusAccepted) //202
-				json.NewEncoder(w).Encode("Rider Insert Successfully")
-				fmt.Println("Rider insert successfully")
-				return
-			} else {
-				w.WriteHeader(http.StatusExpectationFailed) //417
-				fmt.Println("Error with inserting")
-				return
-			}
+
+		} else { // If the query param is not "Passenger" nor "Rider"
+			w.WriteHeader(http.StatusNotFound) // 404
+			return
 		}
 
-	} else {
-		w.WriteHeader(http.StatusNotFound) // 404
+	} else { // Other req methods
+		w.WriteHeader(http.StatusNotFound) //404
 		return
 	}
 }
 
-// RETURN Passenger OR Rider object string in JSON
+// RETURN CommonUser with JWT Token embeded in a Cookie
 func Login(w http.ResponseWriter, r *http.Request) {
 	var creds Credentials
 	var user_type string
 	var user_id string
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	// Init the db
+	db, err := sql.Open("mysql", sqlConnectionString+database)
+	if err != nil {
+		panic(err.Error())
+	}
+	defer db.Close()
 
-	// Handle OPTIONS method
-	if r.Method == "POST" {
-
+	// Check req methods
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK) // 200
+		return
+	} else if r.Method == "POST" {
 		// Receive user login information in JSON
 		// and decode into User
+		expectedPassword := ""
 		err := json.NewDecoder(r.Body).Decode(&creds)
 		if err != nil {
 			// If the structure of the body is wrong, return an HTTP error
-			w.WriteHeader(http.StatusBadRequest)
+			w.WriteHeader(http.StatusBadRequest) //400
 			return
 		}
-		//Get the expected password from the list
-		expectedPassword := ""
 
-		db, err := sql.Open("mysql", sqlConnectionString+database)
-		if err != nil {
-			panic(err.Error())
-		}
-		defer db.Close()
-
+		// Get all the users from the db
 		users, err = getAllUserFromDB(db)
 		if err != nil {
 			panic(err.Error())
 		}
-
+		// Find the matched user and check if the password is correct
 		for _, user := range users {
 			if creds.EmailAddress == user.EmailAddress {
 				expectedPassword = user.Password
@@ -367,21 +377,22 @@ func Login(w http.ResponseWriter, r *http.Request) {
 				user_id = strconv.Itoa(user.UserID)
 			}
 		}
+		// If passwords not matched
 		if expectedPassword == "" {
 			w.WriteHeader(http.StatusUnauthorized) //401
-			fmt.Fprintf(w, "Password not found!")
+			json.NewEncoder(w).Encode("Wrong password!")
 			return
 		}
 
-		//Declare the expiration time of the token to 1hr
+		// Now set the JWT token and the cookie
+		// Declare the expiration time of the token to 1hr
 		expirationTime := time.Now().Add(12 * time.Hour)
 
-		//Create JWT claims, which includes the email and expiry time
+		//Create JWT claims, which includes the email, usertype, id and expiry time
 		claims := &Claims{
 			EmailAddress: creds.EmailAddress,
 			UserType:     user_type,
 			UserID:       user_id,
-
 			RegisteredClaims: jwt.RegisteredClaims{
 				// In JWT, the expiry time is expressed as unix milliseconds
 				ExpiresAt: jwt.NewNumericDate(expirationTime),
@@ -394,7 +405,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		tokenString, err := token.SignedString(jwtKey)
 		if err != nil {
 			// If there is an error in creating the JWT return an internal server error
-			w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(http.StatusInternalServerError) //500
 			return
 		}
 
@@ -405,22 +416,17 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			Value:    tokenString,
 			Expires:  expirationTime,
 			Path:     "/",
-			Secure:   false,
 			HttpOnly: true,
 		})
 
-		//http.Header.Add(http.Header{}, cookie.Name, cookie.Value)
-
 		// If the user logs in with the correct credentials, this handler will then set a cookie on the client
-		// side with the JWT value. Once the cookie is set on a client, it is sent along with every request henceforth
-
-		//return the user credential
+		// side with the JWT value. Once the cookie is set on a client, it is sent along with every request henceforth.
+		// Now return the CommonUser
 		if user_type == "passenger" {
 			passenger, err := getPassenger(db, creds.EmailAddress)
 			if err != nil {
 				panic(err.Error())
 			}
-			// sending back CommonUser object
 			cUser := CommonUser{
 				UserID:       user_id,
 				UserType:     user_type,
@@ -433,14 +439,13 @@ func Login(w http.ResponseWriter, r *http.Request) {
 				CarLicNumber: "",
 			}
 			json.NewEncoder(w).Encode(cUser)
+			return
 
 		} else if user_type == "rider" {
 			rider, err := getRider(db, creds.EmailAddress)
 			if err != nil {
 				panic(err.Error())
 			}
-
-			// sending back CommonUser object
 			cUser := CommonUser{
 				UserID:       user_id,
 				UserType:     user_type,
@@ -453,18 +458,18 @@ func Login(w http.ResponseWriter, r *http.Request) {
 				CarLicNumber: rider.CarLicNumber,
 			}
 			json.NewEncoder(w).Encode(cUser)
+			return
 		} else {
 			w.WriteHeader(http.StatusNotFound) //404
 			return
 		}
-	} else if r.Method == "OPTIONS" {
-		w.WriteHeader(http.StatusOK)
+	} else { // Other methods
+		w.WriteHeader(http.StatusNotFound) //404
 		return
 	}
-
 }
 
-// CHECK COOKIE JWT SIGNATURE AND DO SOMETHING
+// TEST - Check Cookie JWT token and return something
 func Welcome(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("token")
 	if err != nil {
@@ -510,6 +515,7 @@ func Welcome(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// NOTE: The Refresh function is not implemented in the front-end
 // Reset the token expiration time
 func Refresh(w http.ResponseWriter, r *http.Request) {
 	// (BEGIN) The code until this point is the same as the first part of the `Welcome` route
@@ -565,7 +571,6 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 		Value:    tokenString,
 		Expires:  expirationTime,
 		Path:     "/",
-		Secure:   false,
 		HttpOnly: true,
 	})
 }
@@ -577,7 +582,6 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 		Name:     "token",
 		Expires:  time.Now(),
 		Path:     "/",
-		Secure:   false,
 		HttpOnly: true,
 	})
 }

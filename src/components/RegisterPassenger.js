@@ -5,6 +5,7 @@ import CheckButton from "react-validation/build/button";
 import { isEmail } from "validator";
 
 import AuthService from "../services/auth.service";
+import { useNavigate } from "react-router-dom";
 
 const required = (value) => {
   if (!value) {
@@ -64,6 +65,7 @@ const RegisterPassenger = () => {
 
   const [successful, setSuccessful] = useState(false);
   const [message, setMessage] = useState("");
+  const navigate = useNavigate();
 
 
   const onChangeEmail = (e) => {
@@ -105,11 +107,15 @@ const RegisterPassenger = () => {
         (response) => {
           setMessage("Registered Successfully!");
           setSuccessful(true);
+          setTimeout(function () {
+            navigate("/login");
+            window.location.reload();
+          }, 2000);
 
         },
         (error) => {
           var resMessage = ""
-          if (error.response.status == 409) {
+          if (error.response.status === 409) {
             resMessage = "This email has been registered!"
           } else {
             resMessage =

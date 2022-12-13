@@ -31,7 +31,10 @@ const validPostalCode = (value) => {
 };
 
 
+
 const Passenger = () => {
+
+
   const form = useRef();
   const checkBtn = useRef();
 
@@ -90,6 +93,42 @@ const Passenger = () => {
     }
   };
 
+  function CancelRideButton({ride_id}) {
+
+    const handleCancelRide = (e, ride_id) => {
+      e.preventDefault();
+
+      RideServices.cancelRide(ride_id).then(
+          () => {
+            navigate("/passenger");
+            window.location.reload();
+            localStorage.removeItem("ride")
+          },
+          (error) => {
+            const resMessage =
+              (error.response &&
+                error.response.data &&
+                error.response.data.message) ||
+              error.message ||
+              error.toString();
+              setMessage(resMessage)
+          }
+        );
+    };
+    return (
+      <button className="btn btn-danger" onClick={(e) => 
+      {
+        const confirmBox = window.confirm(
+          "Do you really want to cancel this ride?"
+        )
+        if (confirmBox === true) {
+          handleCancelRide(e, ride_id)
+        }
+      }}>
+        Cancel this ride
+      </button>
+    );
+  }
   
   return (
     <div className="container">
@@ -177,9 +216,13 @@ const Passenger = () => {
               <strong>Ride Status: </strong> {currentRide.ride_status}
             </p>
             {currentRide.ride_status === "Pending" && (
+              <div>
             <p>
               Waiting for rider...
             </p>
+            <CancelRideButton ride_id={currentRide.ride_id} />
+            </div>
+            
             )}
             </div>
         )
