@@ -10,7 +10,10 @@ GoRidey is able to do..
 - **Ride Cancellation**
 - **Ride Acceptation/Completion** by Rider
 - **Profile Management**
-  
+
+## Design Architecture
+
+
 
 ## What are the Development Tools & Methods Used?
 GoRidey is developed using the following tools:

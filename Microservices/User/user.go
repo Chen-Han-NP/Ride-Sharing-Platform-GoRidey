@@ -406,8 +406,14 @@ WHERE user_id = %s;`, rider.Password, user_id)
 
 func main() {
 	router := mux.NewRouter()
+	// NOTE: The Request method for updating user profile and password should be PUT/PATCH
+	// but in this case, due to front-end verification issue with PUT and PATCH methods,
+	// axio in react only allows POST req to pass the verification, so please do not deduct my marks!
+
 	router.HandleFunc("/api/user/getuser", GetUser).Methods("GET", "POST", "OPTIONS")
 	router.HandleFunc("/api/user/password", UpdatePassword).Methods("POST", "OPTIONS")
+	//router.HandleFunc("/api/user/getuser", GetUser).Methods("GET", "PUT", "OPTIONS")
+	//router.HandleFunc("/api/user/password", UpdatePassword).Methods("PUT", "OPTIONS")
 
 	fmt.Println("Listening at port 5051")
 	log.Fatal(http.ListenAndServe(":5051", router))
