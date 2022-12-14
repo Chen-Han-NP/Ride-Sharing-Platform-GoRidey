@@ -12,6 +12,8 @@ GoRidey is able to do..
 - **Profile Management**
 
 ## Design Architecture
+![ETI Asg 1 Diagram_2022-12-14_03-34-29](https://user-images.githubusercontent.com/73086331/207539716-2f2f3214-51be-4867-aef9-d2232c981ade.png)
+
 
 
 
