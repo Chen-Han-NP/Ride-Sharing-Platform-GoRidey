@@ -2,19 +2,30 @@
 
 GoRidey is an awesome platform for both Passengers and Riders to initiate, start and end a ride. The idea is very similar to Grab [https://www.grab.com/sg/](https://www.grab.com/sg/) or Gojek [https://www.gojek.com/sg/](https://www.gojek.com/sg/) in Singapore. 
 
-## What Does it Do?
-GoRidey is able to do..
-- **Registration** (Passenger or Rider)
-- **Login Authentication** with JWT Token
-- **Ride Initialization** by Passenger
-- **Ride Cancellation**
-- **Ride Acceptation/Completion** by Rider
-- **Profile Management**
+<img width="1266" alt="Screenshot 2022-12-14 at 3 39 49 PM" src="https://user-images.githubusercontent.com/73086331/207540959-93b48d96-7e01-420c-bb8c-4519d56b3ad5.png">
 
 ## Design Architecture
 ![ETI Asg 1 Diagram_2022-12-14_03-34-29](https://user-images.githubusercontent.com/73086331/207539716-2f2f3214-51be-4867-aef9-d2232c981ade.png)
+Created using [Mural](https://www.mural.co/)
 
+## Microservice Design Considerations
+### 1. Authentication Management
+- User Registration
+- User Login with credentials, assign JWT Token embeded in Cookie
+- User Logout
+### 2. User Management
+- User Get Profile Data
+- User Update Profile Data
+- User Update Password
+<img width="1176" alt="Screenshot 2022-12-14 at 3 41 17 PM" src="https://user-images.githubusercontent.com/73086331/207542314-dac98ae7-d226-4caf-8c5a-8724f0f50f5c.png">
 
+### 3. Ride Management
+- Ride Initialization by Passenger
+- Get All Pending Ride Requests for Rider
+- Ride Acception by Rider
+- Ride Cancellation by Passenger for Pending Rides and Rider for On-going Rides
+- Ride Completion by Rider upon reaching the destination
+- Get All Ride Histories and Display in reverse choronological order
 
 
 ## What are the Development Tools & Methods Used?
