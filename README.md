@@ -59,7 +59,7 @@ GoRidey is developed using the following tools:
 to start the development mode for the React and the website is hosted on:
 - **[http://localhost:3000](http://localhost:3000)**.
 6. It should automatically opens up your default browser, next, set up the Cors Middleware <br>
-Download: [Moesif Orgin & CORS Changer](https://chrome.google.com/webstore/detail/moesif-origin-cors-change/digfbfaphojjndkpccljibejjbppifbc)
+Download: [Moesif Orgin & CORS Changer](https://chrome.google.com/webstore/detail/moesif-origin-cors-change/digfbfaphojjndkpccljibejjbppifbc) <br>
 Under **Advanced Settings**:
 - Change the *Allow-Control-Allow-Origin* as where the React website is hosted.
 - Change the *Set-Control-Allow-Credentials* to **true**
