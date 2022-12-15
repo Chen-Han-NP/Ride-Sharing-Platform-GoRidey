@@ -50,9 +50,12 @@ GoRidey is developed using the following tools:
 2. Open your MySQL Workbench, make sure the server credentials are as followed: user is **`root`**, password is **`password`** and database server port number is **`3306`**, as the connection string in Golang server are set to **`"root:password@tcp(127.0.0.1:3306)/"`** in default.
 3. *MySQL script* is located at: **`RIDE-SHARING-PLATFORM/MySQL/RideSharingDBSetup.sql`**, please find and run the script to set up a **database** with two default Users and two default completed Rides.
 4. To set up the Microservices, please run the following commands:
-- **`go run Microservices/Authentication/auth.go`**
-- **`go run Microservices/User/user.go`**
-- **`go run Microservices/Ride/ride.go`**
+- **`cd Microservices/Authentication`**
+- **`go run auth.go`**
+- **`cd Microservices/User`**
+- **`go run user.go`**
+- **`cd Microservices/Ride`**
+- **`go run ride.go`**
 - Ports **5050**, **5051**, **5052** are used for these three Microservices.
 5. To start the front-end website, in your Terminal/Command Prompt, run: 
 - **`npm run start`**
