@@ -43,19 +43,30 @@ GoRidey is developed using the following tools:
 - Installed [Node.js](https://nodejs.org/en/) package and environment, able to run `npm` commands.
 - Installed [Golang](https://go.dev/) package and environment, able to run `go` commands.
 - Installed [MySQL Workbench](https://www.mysql.com/)
+- Installed [Moesif Orgin & CORS Changer](https://chrome.google.com/webstore/detail/moesif-origin-cors-change/digfbfaphojjndkpccljibejjbppifbc) on Chrome.
 
 ### Let's Dive into Actions!
 1. Clone [https://github.com/Chen-Han-NP/ride-sharing-platform.git](https://github.com/Chen-Han-NP/ride-sharing-platform.git) into your new working repository.
-2. In your Terminal/Command Prompt, run: `npm run start` to start the development mode on the React project and the website is hosted on **[http://localhost:3000](http://localhost:3000)**.
-3. Open your MySQL Workbench, make sure your user is **`root`**, password is **`password`** and database server port number is **`3306`**, as the connection string in Golang server are set to **`"root:password@tcp(127.0.0.1:3306)/"`** in default.
-4. *MySQL script* is located at: **`RIDE-SHARING-PLATFORM/MySQL/RideSharingDBSetup.sql`**, please find and run the script to set up a **database** with two default users - *Chen Han and Daryl*, and *one default completed Ride*.
-5. Open a new Terminal/Command Prompt, run: **`go run Microservices/Authentication/auth.go`**, 
-server should be running at [http://localhost:5050](http://localhost:5050).
-6. Open a new Terminal/Command Prompt, run:`go run Microservices/User/user.go`,
-server should be running at [http://localhost:5051](http://localhost:5051).
-7. Open a new Terminal/Command Prompt, run:`go run Microservices/Ride/ride.go`,
-server should be running at [http://localhost:5052](http://localhost:5052).
-8. **All the servers should be up and running now! Feel free to explore the features :)**
+2. Open your MySQL Workbench, make sure the server credentials are as followed: user is **`root`**, password is **`password`** and database server port number is **`3306`**, as the connection string in Golang server are set to **`"root:password@tcp(127.0.0.1:3306)/"`** in default.
+3. *MySQL script* is located at: **`RIDE-SHARING-PLATFORM/MySQL/RideSharingDBSetup.sql`**, please find and run the script to set up a **database** with two default Users and two default completed Rides.
+4. To set up the Microservices, please run the following commands:
+- **`go run Microservices/Authentication/auth.go`**
+- **`go run Microservices/User/user.go`**
+- **`go run Microservices/Ride/ride.go`**
+- Ports **5050**, **5051**, **5052** are used for these three Microservices.
+5. To start the front-end website, in your Terminal/Command Prompt, run: 
+- **`npm run start`**
+to start the development mode for the React and the website is hosted on:
+- **[http://localhost:3000](http://localhost:3000)**.
+6. It should automatically opens up your default browser, next, set up the Cors Middleware <br>
+Download: [Moesif Orgin & CORS Changer](https://chrome.google.com/webstore/detail/moesif-origin-cors-change/digfbfaphojjndkpccljibejjbppifbc)
+Under **Advanced Settings**:
+- Change the *Allow-Control-Allow-Origin* as where the React website is hosted.
+- Change the *Set-Control-Allow-Credentials* to **true**
+<img width="788" alt="Screenshot 2022-12-15 at 12 54 38 PM" src="https://user-images.githubusercontent.com/73086331/207775809-95eaa857-ffe1-43d7-8547-84122bc61373.png">
+
+7. **You're now free to explore!**
+
 
 
 ## Deployment
